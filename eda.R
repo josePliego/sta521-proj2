@@ -214,3 +214,43 @@ full_dt %>%
   filter(img == "img1") %>%
   ggplot(aes(x = x, y = y, color = corr)) +
   geom_point()
+
+
+# 3.4 PC Images -----------------------------------------------------------
+
+pca_img1 <- full_dt %>%
+  filter(img == "img1") %>%
+  select(-label, -img, -x, -y) %>%
+  prcomp(scale. = TRUE)
+
+as_tibble(pca_img1$x) %>%
+  mutate(
+    label = full_dt %>% filter(img == "img1") %>% .$label,
+    x = full_dt %>% filter(img == "img1") %>% .$x,
+    y = full_dt %>% filter(img == "img1") %>% .$y
+    ) %>%
+  mutate(
+    across(
+      label,
+      ~case_when(
+        .x == 1 ~ "Cloud",
+        .x == -1 ~ "No cloud",
+        .x == 0 ~ "Unlabelled"
+      )
+    )
+  ) %>%
+  ggplot(aes(x = x, y = y, color = PC1)) +
+  geom_point()
+
+
+
+# 3.5 Predictors by label -------------------------------------------------
+
+full_dt %>%
+  filter(img == "img1", x >= 70) %>%
+  select(-img) %>%
+  pivot_longer(cols = c(-x, -y, -label)) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = value, fill = factor(label))) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~name, scales = "free")
