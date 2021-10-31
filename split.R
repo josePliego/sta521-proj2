@@ -31,3 +31,30 @@ splits <- full_dt %>%
     )
   ) %>%
   select(-img_split, -split)
+
+## Exercise 2 part b
+
+set.seed(10)
+
+data_validation = splits %>%
+  filter(set == "validation") %>%
+  group_by(label) %>%
+  summarise(n())
+
+print(data_validation)
+
+Perc_correct_val = 8493/(8493+34609)
+Perc_incorrect_val = 1 - Perc_correct_val
+
+data_test = splits %>%
+  filter(set == "test") %>%
+  group_by(label) %>%
+  summarise(n())
+
+print(data_validation)
+
+Perc_correct_test = 28858/(28858+3208)
+Perc_incorrect_test = 1 - Perc_correct_val
+
+# Classifier will have high accuracy when test and validation sets have mostly cloud-less pixels.
+
