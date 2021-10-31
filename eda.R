@@ -36,6 +36,8 @@ full_dt <- bind_rows(
   mutate(tibble(img3), img = "img3")
 )
 
+full_dt %>% write_rds("data/full_dt.rds")
+
 
 # 3 EDA -------------------------------------------------------------------
 # See number of unlabelled points
@@ -254,3 +256,35 @@ full_dt %>%
   ggplot(aes(x = value, fill = factor(label))) +
   geom_density(alpha = 0.5) +
   facet_wrap(~name, scales = "free")
+
+
+# 3.6 Author defined variables --------------------------------------------
+
+full_dt %>%
+  filter(img == "img1", x >= 70) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = corr, y = sd, color = factor(label))) +
+  geom_point()
+
+full_dt %>%
+  filter(img == "img1", x >= 70) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = corr, y = ndai, color = factor(label))) +
+  geom_point()
+
+full_dt %>%
+  filter(img == "img1", x >= 70) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = ndai, y = sd, color = factor(label))) +
+  geom_point()
+
+plotly::plot_ly(
+  x = full_dt %>% filter(img == "img1", x >= 70, label != 0) %>% .$corr,
+  y = full_dt %>% filter(img == "img1", x >= 70, label != 0) %>% .$ndai,
+  z = full_dt %>% filter(img == "img1", x >= 70, label != 0) %>% .$sd,
+  type = "scatter3d",
+  color = full_dt %>% filter(img == "img1", x >= 70, label != 0) %>% .$label %>% factor(),
+  alpha = 0.5,
+  mode = "markers",
+  size = I(3)
+)

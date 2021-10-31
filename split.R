@@ -1,0 +1,33 @@
+library(tidyverse)
+
+full_dt <- read_rds("data/full_dt.rds")
+
+set.seed(42)
+validation <- sample(1:6, size = 1)
+test <- sample(setdiff(1:6, validation), size = 1)
+train <- setdiff(1:6, c(validation, test))
+
+splits <- full_dt %>%
+  group_by(img) %>%
+  mutate(
+    img_split = if_else(x >= mean(x), "1", "0")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    split = case_when(
+      img == "img1" & img_split == "0" ~ 1,
+      img == "img1" & img_split == "1" ~ 2,
+      img == "img2" & img_split == "0" ~ 3,
+      img == "img2" & img_split == "1" ~ 4,
+      img == "img3" & img_split == "0" ~ 5,
+      img == "img3" & img_split == "1" ~ 6
+      )
+  ) %>%
+  mutate(
+    set = case_when(
+      split %in% validation ~ "validation",
+      split %in% train ~ "train",
+      split %in% test ~ "test"
+    )
+  ) %>%
+  select(-img_split, -split)
