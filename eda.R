@@ -36,7 +36,7 @@ full_dt <- bind_rows(
   mutate(tibble(img3), img = "img3")
 )
 
-full_dt %>% write_rds("data/full_dt.rds")
+# full_dt %>% write_rds("data/full_dt.rds")
 
 
 # 3 EDA -------------------------------------------------------------------
@@ -250,6 +250,24 @@ as_tibble(pca_img1$x) %>%
 
 full_dt %>%
   filter(img == "img1", x >= 70) %>%
+  select(-img) %>%
+  pivot_longer(cols = c(-x, -y, -label)) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = value, fill = factor(label))) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~name, scales = "free")
+
+full_dt %>%
+  filter(img == "img2", x >= 70) %>%
+  select(-img) %>%
+  pivot_longer(cols = c(-x, -y, -label)) %>%
+  filter(label != 0) %>%
+  ggplot(aes(x = value, fill = factor(label))) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~name, scales = "free")
+
+full_dt %>%
+  filter(img == "img3", x >= 70) %>%
   select(-img) %>%
   pivot_longer(cols = c(-x, -y, -label)) %>%
   filter(label != 0) %>%
