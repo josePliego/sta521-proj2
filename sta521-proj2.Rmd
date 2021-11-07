@@ -1,14 +1,24 @@
 ---
-title: "Write-Up"
-author: "Johnny Antoun"
-date: "10/31/2021"
-output: pdf_document
+title: "Project 2 - CREATIVE NAME"
+author:
+- Johnny Antoun (0679537)
+- Jose Pliego (2716768)
+date: "November 2021"
+output:
+  bookdown::pdf_document2:
+    toc: true
+bibliography: sta521-proj2.bib
+header-includes:
+- \usepackage{caption}
+- \usepackage{float}
+- \usepackage{subcaption}
+- \floatplacement{figure}{H}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
 ```
-
 
 # Data Collection and Exploration
 ## (a)
@@ -26,27 +36,62 @@ An existing cloud detection algorithm for MISR data exist, (L2TC), but it do not
 In conclusion, the study shows that the three physical features (CORR, SDan, NDAI) contain enough information to separate clouds from ice- and snow-covered surfaces. The ELCM algorithm combines classification and clustering in a way that makes it suitable for real-time, operational MISR data processing and is more accurate than existing MISR operations algorithms. Statisticians are involving in all the steps of data processing unlike other projects were they come in after the fact to develop methodologies. 
 
 ## (b)
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Label & Img1 & Img2 & Img3 & Total\\
+\hline
+No cloud & 37.54\% & 43.98\% & 29.35\% & 36.96\%\\
+Unlabeled & 28.68\% & 38.24\% & 52.17\% & 39.7\%\\
+Cloud & 33.77\% & 17.78\% & 18.48\% & 23.34\%\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Label distribution in the data.}
+\label{tab:labs}
+\end{table}
 
-\begin{figure}[H]
+\begin{figure}
     \centering
-    \begin{subfigure}[t]{0.3\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/01_labs_img1.png} 
-        \caption{1} \label{fig:labs_img1}
+        \caption{Labels for image 1.} \label{fig:labs_img1}
     \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.3\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/01_labs_img2.png} 
-        \caption{2} \label{fig:labs_img2}
+        \caption{Labels for image 2.} \label{fig:labs_img2}
     \end{subfigure}
-    \begin{subfigure}[t]{0.3\textwidth}
+    \begin{subfigure}[t]{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/01_labs_img3.png} 
-        \caption{3} \label{fig:labs_img3}
+        \caption{Labels for image 3.} \label{fig:labs_img3}
     \end{subfigure}
-    \caption{Maps}
+    \caption{Image labels plotted in the $(x,y)$ plane. White pixels correspond to clouds, gray pixels to land surface, and black pixels are unlabeled.}
     \label{fig:labs}
 \end{figure}
 
+## (c)
 
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_pcimg1.png} 
+        \caption{PC1 representation for image 1.} \label{fig:labs_pcimg1}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+       \includegraphics[width=\linewidth]{graphs/01_pcimg2.png} 
+        \caption{PC1 representation for image 2.} \label{fig:labs_pcimg2}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_pcimg3.png} 
+        \caption{PC1 representation for image 3.} \label{fig:labs_pcimg3}
+    \end{subfigure}
+    \caption{First principal component scores plotted in the $(x,y)$ plane. White regions correspond to missing (unlabeled) sections.}
+    \label{fig:labs}
+\end{figure}
