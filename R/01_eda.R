@@ -1,6 +1,8 @@
 # https://rspatial.org/terra/rs/2-exploration.html#relation-between-bands
 library(tidyverse)
-library(terra)
+# library(terra)
+library(ggcorrplot)
+library(patchwork)
 
 img1 <- read.table("data/imagem1.txt")
 img2 <- read.table("data/imagem2.txt")
@@ -35,38 +37,6 @@ full_dt <- bind_rows(
 
 full_dt <- full_dt %>%
   filter(x > 69, x < 369)
-# Lose 2902/345556
-
-# Make images square
-# full_dt %>%
-#   filter(img == "img1") %>%
-#   select(x, y, label) %>%
-#   pivot_wider(names_from = x, values_from = label) %>%
-#   select(`65`:`100`)
-
-# full_dt <- full_dt %>%
-#   filter(!(img == "img1" & x <= 69))
-# Lose 892 rows from image 1 (892/115110)
-
-# full_dt %>%
-#   filter(img == "img2") %>%
-#   select(x, y, label) %>%
-#   pivot_wider(names_from = x, values_from = label) %>%
-#   select(`65`:`100`)
-
-# full_dt <- full_dt %>%
-#   filter(!(img == "img2" & x <= 69)) %>%
-# Lose 790 rows from image 2 (790/115229)
-
-# full_dt %>%
-#   filter(img == "img3") %>%
-#   select(x, y, label) %>%
-#   pivot_wider(names_from = x, values_from = label) %>%
-#   select(`65`:`100`)
-
-# full_dt <- full_dt %>%
-#   filter(!(img == "img3" & x <= 69))
-# Lose 755 rows from image 3 (755/115217)
 
 # 1 Image summary ---------------------------------------------------------
 # Labels
@@ -75,13 +45,6 @@ full_dt %>%
   pivot_wider(names_from = img, values_from = n) %>%
   janitor::adorn_totals(where = "col", name = "Total") %>%
   mutate(across(img1:Total, ~paste0(round(.x/sum(.x)*100, 2), "%")))
-
-# Maps
-# colors <- c(
-#   "Cloud" = viridis(3)[[1]],
-#   "Unlabelled" = viridis(3)[[2]],
-#   "No cloud" = viridis(3)[[3]]
-# )
 
 colors <- c(
   "Cloud" = "white",
@@ -211,72 +174,179 @@ my_scale <- function(x) {
 }
 
 dt_eda %>%
-  select(rad_df:img) %>%
+  select(ndai:img) %>%
   mutate(across(-img, my_scale)) %>%
   pivot_longer(cols = -img) %>%
   ggplot(aes(x = value, fill = img)) +
   geom_density(alpha = 0.5) +
-  facet_wrap(~name)
+  facet_wrap(~name, scales = "free")
 
-pca <- dt_eda %>%
+# Correlogram
+
+corplot <- dt_eda %>%
+  select(label:rad_an) %>%
+  cor() %>%
+  ggcorrplot(
+    method = "square",
+    type = "lower",
+    ggtheme = ggplot2::theme_bw,
+    legend.title = "Correlation"
+  )
+
+ggsave(
+  "graphs/01_corrplot.png",
+  corplot,
+  width = 8*1.5,
+  height = 6*1.5,
+  units = "cm"
+)
+
+# Pairwise relationships
+medians <- dt_eda %>%
+  mutate(`log(sd)` = log(sd)) %>%
+  select(label, ndai, corr, `log(sd)`, rad_an) %>%
+  mutate(across(-label, my_scale)) %>%
+  mutate(across(label, ~if_else(.x == 1, "Cloud", "No cloud"))) %>%
+  group_by(label) %>%
+  summarise(across(ndai:rad_an, median), .groups = "drop") %>%
+  pivot_longer(cols = -label)
+
+color_vec <- c("Cloud" = "gray60", "No cloud" = "gray8")
+
+label_densities <- dt_eda %>%
+  mutate(`log(sd)` = log(sd)) %>%
+  select(label, ndai, corr, `log(sd)`, rad_an) %>%
+  mutate(across(-label, my_scale)) %>%
+  mutate(across(label, ~if_else(.x == 1, "Cloud", "No cloud"))) %>%
+  pivot_longer(cols = -label) %>%
+  ggplot(aes(x = value, fill = factor(label))) +
+  geom_density(alpha = 0.7) +
+  geom_vline(
+    data = medians,
+    aes(xintercept = value, color = factor(label)),
+    linetype = 2
+    ) +
+  facet_wrap(~name, scales = "free") +
+  labs(x = "", y = "", fill = "") +
+  guides(color = "none") +
+  # scale_fill_viridis_d(option = "plasma") +
+  # scale_color_viridis_d(option = "plasma") +
+  scale_fill_manual(values = color_vec) +
+  scale_color_manual(values = color_vec) +
+  theme_bw()
+
+ggsave(
+  "graphs/01_lab_densities.png",
+  label_densities,
+  width = 12*1.5,
+  height = 6*1.5,
+  units = "cm"
+)
+
+dt_eda %>%
+  ggplot(aes(x = rad_af, y = rad_an)) +
+  geom_point()
+
+corr_radan <- dt_eda %>%
+  ggplot(aes(x = corr, y = rad_an)) +
+  geom_point(color = viridis::viridis(1)) +
+  labs(x = "corr", y = "rad_an") +
+  theme_bw()
+
+ggsave(
+  "graphs/01_corr_radan.png",
+  corr_radan,
+  width = 12*1.5,
+  height = 6*1.5,
+  units = "cm"
+)
+
+ndai_sd <- dt_eda %>%
+  ggplot(aes(x = ndai, y = sd)) +
+  geom_point(color = viridis::viridis(1)) +
+  labs(x = "ndai", y = "sd") +
+  theme_bw()
+
+ggsave(
+  "graphs/01_ndai_sd.png",
+  ndai_sd,
+  width = 12*1.5,
+  height = 6*1.5,
+  units = "cm"
+)
+
+dt_eda %>%
+  ggplot(aes(x = corr)) +
+  geom_density()
+
+
+pca <- full_dt %>%
   select(-x, -y, -label, -img) %>%
   prcomp(scale. = TRUE)
 
-pcimg1 <- as_tibble(pca$x) %>%
-  mutate(x = dt_eda$x, y = dt_eda$y, img = dt_eda$img) %>%
+cumsum(pca$sdev^2)/sum(pca$sdev^2)
+
+pcimg <- as_tibble(pca$x) %>%
+  mutate(x = full_dt$x, y = full_dt$y, img = full_dt$img)
+
+pcimg %>%
+  mutate(label = full_dt$label) %>%
+  filter(label != 0) %>%
+  group_by(label) %>%
+  summarise(across(PC1:PC2, list("IQR" = IQR, "median" = median)))
+
+pcimg1 <- pcimg %>%
   filter(img == "img1") %>%
   ggplot(aes(x = x, y = y, color = PC1)) +
   geom_point() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_color_viridis_c() +
-  labs(x = "", y = "") +
+  labs(x = "", y = "", fill = "PC1") +
   theme_bw() +
   theme(
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    legend.title = element_blank(),
+    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   )
 
-pcimg2 <- as_tibble(pca$x) %>%
-  mutate(x = dt_eda$x, y = dt_eda$y, img = dt_eda$img) %>%
+pcimg2 <- pcimg %>%
   filter(img == "img2") %>%
   ggplot(aes(x = x, y = y, color = PC1)) +
   geom_point() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_color_viridis_c() +
-  labs(x = "", y = "") +
+  labs(x = "", y = "", fill = "PC1") +
   theme_bw() +
   theme(
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    legend.title = element_blank(),
+    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   )
 
-pcimg3 <- as_tibble(pca$x) %>%
-  mutate(x = dt_eda$x, y = dt_eda$y, img = dt_eda$img) %>%
+pcimg3 <- pcimg %>%
   filter(img == "img3") %>%
   ggplot(aes(x = x, y = y, color = PC1)) +
   geom_point() +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_color_viridis_c(breaks = seq(from = -8, to = 1, by = 3)) +
-  labs(x = "", y = "") +
+  labs(x = "", y = "", fill = "PC1") +
   theme_bw() +
   theme(
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    legend.title = element_blank(),
+    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
@@ -285,35 +355,26 @@ pcimg3 <- as_tibble(pca$x) %>%
 ggsave(
   "graphs/01_pcimg1.png",
   pcimg1,
-  width = 2.99 * 2,
-  height = 3.82 * 2.5,
+  width = 2.99 * 3,
+  height = 3.82 * 3.5,
   units = "cm"
 )
 
 ggsave(
   "graphs/01_pcimg2.png",
   pcimg2,
-  width = 2.99 * 2,
-  height = 3.82 * 2.5,
+  width = 2.99 * 3,
+  height = 3.82 * 3.5,
   units = "cm"
 )
 
 ggsave(
   "graphs/01_pcimg3.png",
   pcimg3,
-  width = 2.99 * 2,
-  height = 3.82 * 2.5,
+  width = 2.99 * 3,
+  height = 3.82 * 3.5,
   units = "cm"
 )
 
-# dt_vectors <- as_tibble(pca$rotation) %>%
-#   mutate(variable = rownames(pca$rotation))
-
-# as_tibble(pca$x) %>%
-#   mutate(label = dt_eda$label) %>%
-#   ggplot() +
-#   geom_point(aes(x = PC1, y = PC2, color = factor(label)), alpha = 0.2) +
-#   geom_segment(
-#     aes(x = 0, y = 0, xend = 10*PC1, yend = 10*PC2),
-#     data = dt_vectors
-#     )
+write_rds(full_dt, "data/01_dt_full.rds")
+write_rds(dt_eda, "data/01_dt_eda.rds")
