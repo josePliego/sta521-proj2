@@ -182,4 +182,60 @@ In table \@ref(tab:sumpc) we see that the first two principal components have mo
 
 \newpage
 
+# Preparation
+## Data Split
+
+In this section, we propose two methods to split the data into three sets (train, validation, and test). The two methods are block splitting (@blockcv) and clustering (@sperrorest). Conventional random splitting is not ideal for spatial data since pixels close to each other tend to be more similar. This means that we could be filtering information from the training to the test set with neighboring pixels, and model assessments in the test set would be overly optimistic.
+
+The idea behind block splitting is dividing each image into similar sized blocks. The blocks should be big enough so that the spatial correlation between blocks is relatively low while simultaneously capturing the spatial correlation structure of the pixels within each block. We also have to be careful and make sure that our test set does not contain an overwhelming majority of cloud or non-cloud labels, since a test set with any of these characteristics would not be a good proxy for how a model will perform with unseen data.
+
+We chose to split each image into two blocks and take one random block as test set, another random block as validation set, and the four remaining blocks as training data. This corresponds to a 66.6%-16.6%-16.6% training-validation-test split. After trying different block sizes, we settled for two blocks in each image so we can capture a diversity of pixel characteristics in each set, while also making sure that there are enough pixels to train classification models. When we use cross-validation to fit the models in section 3, then the train-test split becomes a 83.3%-16.6% split. The blocks were defined including the unlabeled pixels, even though these pixels are not useful for classification. We decided to include these pixels on the block design because creating blocks that account for missing pixel patches is complicated and our blocks are big enough so that none of the sets has an overwhelming majority of unlabeled pixels.
+
+For the clustering split, we use k-means clustering on the $(x,y)$ coordinates for each image (see @sperrorest). We identify two main advantages of using k-means over block splitting. The first is that we can remove the unlabeled pixels so that the clustering algorithm only uses coordinate information of the pixels that will actually be used for modeling. The second advantage is that we can specify any number of clusters, while the block splits restrict us to using a number of blocks specified as rows$\times$columns.
+
+Following the same reasoning as in the block splits, we choose to split each image in 3 clusters, taking two of the nine clusters as test set, one as validation set, and the remaining six as training set. This corresponds to a 66.6%-11.1%-22.2% training-validation-test split. We also center and scale the coordinates before clustering so there is not more variation in one of the dimensions.
+
+\begin{figure}
+    \centering
+    \hspace*{\fill}
+    \begin{subfigure}[t]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_blocksimg3.png} 
+        \caption{Block splits for image 3.} \label{fig:block}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_kmeansimg3.png} 
+        \caption{K-means splits for image 3.} \label{fig:kmeans}
+    \end{subfigure}
+    \hspace*{\fill}
+    \caption{Block and clustering splits for image 3.}
+    \label{fig:splits}
+\end{figure}
+
+Figure \@ref(fig:splits) shows a visual representation of the clustering and block splits for image 3. The unlabeled points were removed after doing the block splits. We can see how k-means is not restricted to a square grid structure and can take more flexible shapes. It is important to note that there is still some information leakage between points that are close to the group borders, but it is considerably better than using purely random splitting (see @blockcv, @sperrorest, @img_book).
+
+## Baseline model
+
+We report the accuracy of a trivial classifier that predicts every pixel as non-cloudy on the test and validation sets, using both splitting methods mentioned before. This trivial classifier serves as a baseline comparison for the classification models used in section 3. The accuracies are shown in table \@ref(tab:baseline).
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Splitting Method & Set & Accuracy\\
+\hline
+Block & Validation & 78.8\%\\
+Block & Test & 20.2\%\\
+K-means & Validation & 81.8\%\\
+K-means & Test & 86.3\%\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Accuracy of a trivial classifier.}
+\label{tab:baseline}
+\end{table}
+
+
 # Bibliography

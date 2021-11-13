@@ -211,7 +211,7 @@ medians <- dt_eda %>%
   summarise(across(ndai:rad_an, median), .groups = "drop") %>%
   pivot_longer(cols = -label)
 
-color_vec <- c("Cloud" = "gray60", "No cloud" = "gray8")
+# color_vec <- c("Cloud" = "gray60", "No cloud" = "gray8")
 
 label_densities <- dt_eda %>%
   mutate(`log(sd)` = log(sd)) %>%
@@ -223,16 +223,17 @@ label_densities <- dt_eda %>%
   geom_density(alpha = 0.7) +
   geom_vline(
     data = medians,
-    aes(xintercept = value, color = factor(label)),
+    aes(xintercept = value),
+    color = "black",
     linetype = 2
     ) +
   facet_wrap(~name, scales = "free") +
   labs(x = "", y = "", fill = "") +
   guides(color = "none") +
-  # scale_fill_viridis_d(option = "plasma") +
-  # scale_color_viridis_d(option = "plasma") +
-  scale_fill_manual(values = color_vec) +
-  scale_color_manual(values = color_vec) +
+  scale_fill_viridis_d() +
+  scale_color_viridis_d() +
+  # scale_fill_manual(values = color_vec) +
+  # scale_color_manual(values = color_vec) +
   theme_bw()
 
 ggsave(
