@@ -1,0 +1,241 @@
+---
+title: "Project 2 - CREATIVE NAME"
+author:
+- Johnny Antoun (0679537)
+- Jose Pliego (2716768)
+date: "November 2021"
+output:
+  bookdown::pdf_document2:
+    toc: true
+bibliography: sta521-proj2.bib
+header-includes:
+- \usepackage{caption}
+- \usepackage{float}
+- \usepackage{subcaption}
+- \floatplacement{figure}{H}
+---
+
+\fontsize{10}{12}
+\fontseries{m}
+\selectfont
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+```
+
+\newpage
+
+# Data Collection and Exploration
+## Paper summary
+
+The impact of increasing amounts of atmospheric carbon dioxide on Earth's climate is an important issue today. Prevalence of carbon dioxide leads to higher surface air temperatures with the strongest dependencies being in the Arctic region. In the polar regions, cloud coverage is important in modulating the sensitivity of the Arctic to increasing surface air temperatures but existing algorithms to detect clouds do not perform well in these regions due to the similarity between visible and infrared electromagnetic radiation emited from clouds and snow/ice-covered surfaces.   
+
+This study describes NASA scientists and statisticians attempt to devise improved cloud detection algorithms that work well in polar regions. They rely on measurements from the Multiangle Imaging SpectroRadiometer (MISR) that differs from traditional multispectral sensors that take measurements in a single view. The MISR sensor comprises nine cameras at different angles (4 forward, 4 backward and one nadir) in four spectral bands (blue, red, green and near-infrared). The MISC cameras cover 360-km-width swath of Earth's surface that extend across daylight side of the Earth from Arctic down to Antarctica in approximately 45 minutes with a total 233 distinct, but overlapping, such swaths. MISR completes accumulation of data from all 233 paths in around 15 days with each path subdivided into 180 blocks (block number increasing from the North Pole to the South Pole). 
+
+It is clear from the MISR data collection process that the resulting dataset is massive, posing computational constraints. Standard classification frameworks are not readily applicable given the size of the data and thus the difficulty of obtaining expert labels for training. Clustering is not ideal either because data units (three consecutive blocks) could be entirely cloud-covered or cloud-free. Consequently, the challenge is to combine clustering and classification in a computationally efficient manner. 
+
+The data collected in this study consists of 6 data units from consecutive 10 MISR orbits of path 26 (rich in surface features). Out of the total of 60 data units, three are excluded because the surfaces were open water, with the total included corresponding to around 7.1 million 1.1-kn resolution pixels. Experts label 71.5% of valid pixels 
+
+An existing cloud detection algorithm for MISR data exist, (L2TC), but it do not work well in the polar regions. the algorithm generally works well with the exeption of polar regions because low cloud heights lead to lower accuracy. This algorithm look for cloud pixels whereas the NASA scientists and statisticians found a better approach is to model the surface because it doesn't change materially from different different views. The proposed algorithm, enhanced linear correlation matching (ELCM), based on threholding three features with values that are either fixed or data-adaptive: correlation of MISR images of the same scene from a different angle (CORR), standard deviation of MISR nadir camera pixel values across a scene (SDan) and normalized difference angular index (NDAI) which relates to changes in a  scene with changes in view direction. The CORR and SDan cutoff values are set for fixed values during operational processing whereas the NDAI threshold is either kept the same or updated at a new data unit based on a data-adaptive algorithm. Labels resulting from the ELCM algorithm are then used to train Fisher's quadratic discriminant analysis (QDA) to produce probability labels i.e. probability of cloudiness.
+
+In conclusion, the study shows that the three physical features (CORR, SDan, NDAI) contain enough information to separate clouds from ice- and snow-covered surfaces. The ELCM algorithm combines classification and clustering in a way that makes it suitable for real-time, operational MISR data processing and is more accurate than existing MISR operations algorithms. Statisticians are involving in all the steps of data processing unlike other projects were they come in after the fact to develop methodologies. 
+
+## Data Summary
+
+From this section and throughout our work, we "trimmed" the images so that they are perfectly rectangular. To do this, we filtered each image to have $x$-coordinate values between 70 and 368. By doing this cleaning step, we lost 2902 pixels in total (0.84%), with each of the three images loosing a similar proportion of pixels. We decided to do this trimming because some features like Gabor filters require a rectangular matrix as an input (@img_book, @gabor, @openimager).
+
+As a first step in the exploratory data analysis, let's take a look at the distribution of the expert labels in each image and in aggregate. The distribution is shown as a percentage frequency table (table \@ref(tab:labs)). We can see that the distribution varies greatly from one image to another, with image 1 having a similar amount of cloud and non-cloud pixels, image 2 having a majority of non-cloud pixels, and image 3 having most of its pixels unlabeled.
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Label & Img1 & Img2 & Img3 & Total\\
+\hline
+No cloud & 37.54\% & 43.98\% & 29.35\% & 36.96\%\\
+Unlabeled & 28.68\% & 38.24\% & 52.17\% & 39.7\%\\
+Cloud & 33.77\% & 17.78\% & 18.48\% & 23.34\%\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Label distribution in the data.}
+\label{tab:labs}
+\end{table}
+
+To get a sense of how labels look like in space, we can plot them in the $(x,y)$ plane. In figure \@ref(fig:labs) we can see that cloudy regions and surface regions are separated by unlabeled regions, where the expert could not say for sure whether the pixels correspond to clouds or ice/snow.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img1.png} 
+        \caption{Labels for image 1.} \label{fig:labs_img1}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img2.png} 
+        \caption{Labels for image 2.} \label{fig:labs_img2}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img3.png} 
+        \caption{Labels for image 3.} \label{fig:labs_img3}
+    \end{subfigure}
+    \caption{Image labels plotted in the $(x,y)$ plane. White pixels correspond to clouds, gray pixels to land surface, and black pixels are unlabeled.}
+    \label{fig:labs}
+\end{figure}
+
+Figure \@ref(fig:labs) is very interesting because it shows the strong spatial dependence present in the images. Cloudy pixels are generally surrounded by more cloudy pixels, and the same pattern repeats for surface (non-cloudy) pixels. This phenomenon presents a significant challenge for pixel classification because we cannot treat the different pixels as independent and identically distributed. We must account for the spatial dependence in our classification models so they can generalize well to future unobserved images.
+
+\newpage
+
+## Exploratory Data Analysis
+
+To get a broad sense of how the predictors are related between them and with the labels, we include a correlation plot of the relevant variables in figure \@ref(fig:corrplot). The label column is encoded as 1 if the pixel is a cloud and -1 if it is not, so a positive correlation between label and a predictor can be roughly interpreted as an increase in the predictor being associated with an increase in "cloudiness". For this figure, we remove the pixels that are unlabeled to retain the numerical interpretation of the labels and the correlation with the predictors.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=8cm]{graphs/01_corrplot.png} 
+    \caption{Visual representation of Pearson's correlation matrix.}
+    \label{fig:corrplot}
+\end{figure}
+
+Figure \@ref(fig:corrplot) shows a positive correlation between label and the author-defined variables \texttt{ndai}, \texttt{sd}, and \texttt{corr}, and also shows a negative correlation between label and most radiance measurements. It is also interesting to note that the author-defined variables are negatively correlated with the radiance measurements while positively correlated among themselves. Similarly, radiance measurements are positively correlated. This was expected since these variables are all measuring light reflection at different angles.
+
+To take a closer look at some of these relationships, figure \@ref(fig:labdensities) shows the distribution of the author-defined variables and \texttt{rad\_an} for the two pixel classes. The figure includes density estimates and the median for each class. All variables were centered and scaled. For the variable \texttt{sd}, we use a logarithmic transformation because the original variable is heavily right-skewed.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=13cm]{graphs/01_lab_densities.png} 
+    \caption{Distribution of author-defined variables and nadir radiance (rad\_an) across pixel labels (median values highlighted).}
+    \label{fig:labdensities}
+\end{figure}
+
+In figure \@ref(fig:labdensities) we can see that the distributions are visibly different for both classes. The differences and the distance between the medians are greater in the plots of \texttt{log(sd)} and \texttt{ndai}. It is interesting to note that @yu2008 use fixed cutoff thresholds for \texttt{sd} and \texttt{corr} but not for \texttt{ndai} since the "appropriate thresholds vary from one data unit to another". In our case, it seems like \texttt{ndai} is the most discriminating feature. We formalize this notion of "best features" on section 2.
+
+We include two scatterplots between the predictors that convey interesting properties in figure \@ref(fig:scatter). The relationship between \texttt{ndai} and \texttt{sd} is shown in panel \@ref(fig:ndaisd). We see that the two variables are positively correlated (as was shown in figure \@ref(fig:corrplot)) but also see that the spread of \texttt{sd} increases as \texttt{ndai} increases. Similarly, panel \@ref(fig:corrradan) shows the negative correlation between \texttt{corr} and \texttt{rad\_an}, while also showing that the variance in \texttt{rad\_an} increases as \texttt{corr} decreases. We chose to include these two scatterplots because other correlated variables show a more straightforward linear relationship without the heteroscedasticity property.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_ndai_sd.png} 
+        \caption{Scatterplot between \texttt{ndai} and \texttt{sd}.}
+        \label{fig:ndaisd}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+       \includegraphics[width=\linewidth]{graphs/01_corr_radan.png} 
+        \caption{Scatterplot between \texttt{corr} and \texttt{rad\_an}.} \label{fig:corrradan}
+    \end{subfigure}
+    \caption{Scatterplots for two pairs of highly correlated features.}
+    \label{fig:scatter}
+\end{figure}
+
+To conclude the exploratory data analysis, we use Principal Component Analysis to reconstruct the three images using information from all the predictors. Since the principal components do not use label information, we obtain the scores and loadings using all the pixels. In figure \@ref(fig:labspc) we can see the first principal component scores plotted in space. Note that the first principal component shows spatial dependence between neighboring pixels. This detail is interesting because the $(x, y)$ coordinates were not used to calculate the principal components, so it supports the authors' claim that some features convey implicit spatial structure when defined using local patches of pixels.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_pcimg1.png} 
+        \caption{PC1 representation for image 1.} \label{fig:labspcimg1}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+       \includegraphics[width=\linewidth]{graphs/01_pcimg2.png} 
+        \caption{PC1 representation for image 2.} \label{fig:labspcimg2}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_pcimg3.png} 
+        \caption{PC1 representation for image 3.} \label{fig:labspcimg3}
+    \end{subfigure}
+    \caption{First principal component scores plotted in the $(x,y)$ plane.}
+    \label{fig:labspc}
+\end{figure}
+
+The first two principal components account for 80.7% of the variance in the dataset. Using the principal components as predictors instead of the original features may be useful in the modeling stage. As we saw in this analysis, some of the original predictors are highly correlated and using a set of orthogonal predictors (principal components) may yield better model results.
+
+Finally, to support the claim that the principal components contain some of the spatial structure present in the data, we calculate the median and interquartile range (IQR) of the first two principal components by label. We choose IQR as a measure of spread and the median as representing the center because the distributions are not symmetric or unimodal.
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+Label & PC & Median & IQR\\
+\hline
+No cloud & PC1 & 1.69 & 1.94\\
+No cloud & PC2 & -0.50 & 0.88\\
+Cloud & PC1 & -0.86 & 3.06\\
+Cloud & PC2 & 0.98 & 2.12\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Summary statistics for principal components.}
+\label{tab:sumpc}
+\end{table}
+
+In table \@ref(tab:sumpc) we see that the first two principal components have more spread in cloudy pixels, and the medians are different for both types of labels. This suggests that principal components may be useful in classification models. In section 3 we formalize these claims and assess model performance.
+
+\newpage
+
+# Preparation
+## Data Split
+
+In this section, we propose two methods to split the data into three sets (train, validation, and test). The two methods are block splitting (@blockcv) and clustering (@sperrorest). Conventional random splitting is not ideal for spatial data since pixels close to each other tend to be more similar. This means that we could be filtering information from the training to the test set with neighboring pixels, and model assessments in the test set would be overly optimistic.
+
+The idea behind block splitting is dividing each image into similar sized blocks. The blocks should be big enough so that the spatial correlation between blocks is relatively low while simultaneously capturing the spatial correlation structure of the pixels within each block. We also have to be careful and make sure that our test set does not contain an overwhelming majority of cloud or non-cloud labels, since a test set with any of these characteristics would not be a good proxy for how a model will perform with unseen data.
+
+We chose to split each image into two blocks and take one random block as test set, another random block as validation set, and the four remaining blocks as training data. This corresponds to a 66.6%-16.6%-16.6% training-validation-test split. After trying different block sizes, we settled for two blocks in each image so we can capture a diversity of pixel characteristics in each set, while also making sure that there are enough pixels to train classification models. When we use cross-validation to fit the models in section 3, then the train-test split becomes a 83.3%-16.6% split. The blocks were defined including the unlabeled pixels, even though these pixels are not useful for classification. We decided to include these pixels on the block design because creating blocks that account for missing pixel patches is complicated and our blocks are big enough so that none of the sets has an overwhelming majority of unlabeled pixels.
+
+For the clustering split, we use k-means clustering on the $(x,y)$ coordinates for each image (see @sperrorest). We identify two main advantages of using k-means over block splitting. The first is that we can remove the unlabeled pixels so that the clustering algorithm only uses coordinate information of the pixels that will actually be used for modeling. The second advantage is that we can specify any number of clusters, while the block splits restrict us to using a number of blocks specified as rows$\times$columns.
+
+Following the same reasoning as in the block splits, we choose to split each image in 3 clusters, taking two of the nine clusters as test set, one as validation set, and the remaining six as training set. This corresponds to a 66.6%-11.1%-22.2% training-validation-test split. We also center and scale the coordinates before clustering so there is not more variation in one of the dimensions.
+
+\begin{figure}
+    \centering
+    \hspace*{\fill}
+    \begin{subfigure}[t]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_blocksimg3.png} 
+        \caption{Block splits for image 3.} \label{fig:block}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_kmeansimg3.png} 
+        \caption{K-means splits for image 3.} \label{fig:kmeans}
+    \end{subfigure}
+    \hspace*{\fill}
+    \caption{Block and clustering splits for image 3.}
+    \label{fig:splits}
+\end{figure}
+
+Figure \@ref(fig:splits) shows a visual representation of the clustering and block splits for image 3. The unlabeled points were removed after doing the block splits. We can see how k-means is not restricted to a square grid structure and can take more flexible shapes. It is important to note that there is still some information leakage between points that are close to the group borders, but it is considerably better than using purely random splitting (see @blockcv, @sperrorest, @img_book).
+
+## Baseline model
+
+We report the accuracy of a trivial classifier that predicts every pixel as non-cloudy on the test and validation sets, using both splitting methods mentioned before. This trivial classifier serves as a baseline comparison for the classification models used in section 3. The accuracies are shown in table \@ref(tab:baseline).
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Splitting Method & Set & Accuracy\\
+\hline
+Block & Validation & 78.8\%\\
+Block & Test & 20.2\%\\
+K-means & Validation & 81.8\%\\
+K-means & Test & 86.3\%\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Accuracy of a trivial classifier.}
+\label{tab:baseline}
+\end{table}
+
+
+# Bibliography

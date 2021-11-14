@@ -10,7 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-Write-Up:
+# Data Collection and Exploration
+## (a)
 
 The impact of increasing amounts of atmospheric carbon dioxide on Earth's climate is an important issue today. This is primarily due to the fact that the prevalence of carbon dioxide leads to higher surface air temperature, with the strongest dependencies being in the Arctic region. 
 
@@ -30,6 +31,28 @@ To assess the different algorithms, results are compared against expert labelled
 In conclusion, the study shows that the three physical features (CORR, SDan, NDAI) contain enough information to separate clouds from ice- and snow-covered surfaces. The ELCM algorithm combines classification and clustering in a way that makes it suitable for real-time, operational MISR data processing and is more accurate than existing MISR operations algorithms. Statisticians are involving in all the steps of data processing unlike other projects were they come in after the fact to develop methodologies. This study showed that by careful combination and application-specific modification of existing statistical methods, innovative solutions to difficult problems can be crafted.
 
 
+## (b)
 
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img1.png} 
+        \caption{1} \label{fig:labs_img1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img2.png} 
+        \caption{2} \label{fig:labs_img2}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/01_labs_img3.png} 
+        \caption{3} \label{fig:labs_img3}
+    \end{subfigure}
+    \caption{Maps}
+    \label{fig:labs}
+\end{figure}
 
 
