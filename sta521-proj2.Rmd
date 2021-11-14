@@ -237,5 +237,57 @@ K-means & Test & 86.3\%\\
 \label{tab:baseline}
 \end{table}
 
+We can see that the trivial classifier performance is greatly dependent on the set used to evaluate. Trivial classifiers perform well when the data is unbalanced, in this context when a set is composed of mostly non-cloudy pixels. In table \@ref(tab:baseline) we see that the validation sets for both splits, as well as the test set obtained with k-means, consist of mostly non-cloudy pixels so the classifier has relatively high accuracy. However, the accuracy is still far from 100% so the hope is that a well designed classification model will outperform the trivial classifier. We also see that our splitting methods work well since we manage to capture different pixel behaviors in each set.
+
+## Feature selection
+
+To formalize the selection of "best features" mentioned in section 1, we fit single-predictor models using each of the predictors and assess this models' performance. We fit a logistic regression on each training set (block and cluster splits), calculate the area under the curve (AUC) of the ROC Curve in the validation sets, and average this values to rank the predictors. We choose AUC as a selection criterion because this metric takes into account all possible probability threshold cutoffs, and we choose logistic regression as an initial model because this model returns a coefficient for the predictor and we can relate the probability of a pixel being cloudy or not with a higher or lower value of each predictor.
+
+The results are shown in table \@ref(tab:aucsingle). We can see that \texttt{ndai} is the clear winner, followed by \texttt{sd}, both of which are author-defined predictors. Going back to figure \@ref(fig:labdensities), we expected \texttt{ndai} to perform well because the distributions between the two classes were well separated.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|lccc|}
+  \hline
+  var & AUC Block & AUC K-means & Avg AUC \\ 
+  \hline
+  ndai & 1.00 & 0.99 & 0.99 \\ 
+  sd & 0.94 & 0.91 & 0.92 \\ 
+  rad\_af & 0.82 & 0.93 & 0.87 \\ 
+  rad\_bf & 0.87 & 0.83 & 0.85 \\ 
+  rad\_an & 0.71 & 0.88 & 0.80 \\ 
+  corr & 0.31 & 0.99 & 0.65 \\ 
+  rad\_cf & 0.87 & 0.20 & 0.54 \\ 
+  rad\_df & 0.86 & 0.05 & 0.45 \\ 
+  \hline
+\end{tabular}
+\caption{Single-predictor model performance.}
+\label{tab:aucsingle}
+\end{table}
+
+As a visual assessment, we show the values of \texttt{ndai} plotted in space for the three original images. In figure \@ref(fig:ndai) we see what figure \@ref(fig:labdensities) suggested, that higher values of \texttt{ndai} are associated with cloudy pixels. This is further supported by the logistic regression model having a positive coefficient $\hat{\beta}_{ndai} = 2.008$.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_ndaiimg1.png} 
+        \caption{Image 1.} \label{fig:ndaiimg1}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+       \includegraphics[width=\linewidth]{graphs/02_ndaiimg2.png} 
+        \caption{Image 2.} \label{fig:ndaiimg2}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/02_ndaiimg3.png} 
+        \caption{Image 3.} \label{fig:ndaiimg3}
+    \end{subfigure}
+    \caption{\texttt{ndai} values plotted in the $(x,y)$ plane.}
+    \label{fig:ndai}
+\end{figure}
+
+The visual cues in figures \@ref(fig:labdensities) and \@ref(fig:ndai), along with the quantification of AUC in table \@ref(tab:aucsingle), suggest that \texttt{ndai} is the most useful feature for predicting pixel labels. The AUC results suggest \texttt{sd} and \texttt{rad\_af} as the second and third most important features, but this can change based on how the predictors behave when used simultaneously in a classification model.
 
 # Bibliography
