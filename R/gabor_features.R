@@ -1,41 +1,32 @@
-# 1 Preamble --------------------------------------------------------------
-
 library(tidyverse)
-library(viridis)
-library(patchwork)
-library(factoextra)
 library(OpenImageR)
 
-img1 <- read.table("data/imagem1.txt")
-img2 <- read.table("data/imagem2.txt")
-img3 <- read.table("data/imagem3.txt")
+dt_train <- read_rds("data/02_dt_train_block.rds") %>%
+  select(-block) %>%
+  mutate(
+    across(x, ~if_else(img == "img3", .x + 299, .x))
+  )
 
+dt_pca <- dt_train %>%
+  select(ndai:rad_an) %>%
+  prcomp(scale. = TRUE) %>%
+  .$x %>%
+  as_tibble() %>%
+  mutate(x = dt_train$x, y = dt_train$y) %>%
+  pivot_wider(names_from = x) %>%
+  select(-y) %>%
+  as.matrix()
 
-# 2 Data transformation ---------------------------------------------------
+init_gb <- GaborFeatureExtract$new()
 
-column_names <- c(
-  "y",
-  "x",
-  "label",
-  "ndai",
-  "sd",
-  "corr",
-  "rad_df",
-  "rad_cf",
-  "rad_bf",
-  "rad_af",
-  "rad_an"
-)
-names(img1) <- column_names
-names(img2) <- column_names
-names(img3) <- column_names
+dat <- init_gb$gabor_feature_engine(
+  img_data = dt_pca, img_nrow = NROW(dt_pca), img_ncol = NCOL(dt_pca),
+  scales = 4, orientations = 8, gabor_rows = 39,
+  gabor_columns = 39, downsample_gabor = FALSE,
+  downsample_rows = NULL, downsample_cols = NULL,
+  normalize_features = FALSE, threads = 6,
+  verbose = TRUE)
 
-
-full_dt <- bind_rows(
-  mutate(tibble(img1), img = "img1"),
-  mutate(tibble(img2), img = "img2"),
-  mutate(tibble(img3), img = "img3")
-)
 
 
 # 3 Gabor features --------------------------------------------------------

@@ -222,3 +222,20 @@ dt_test_kmeans %>%
 
 dt_val_kmeans %>%
   summarise(acc = mean(label == -1))
+
+dt_test_block %>%
+  filter(label != 0) %>%
+  write_rds("data/02_dt_test_block.rds")
+dt_val_block %>%
+  filter(label != 0) %>%
+  write_rds("data/02_dt_val_block.rds")
+dt_train_block %>%
+  filter(label != 0) %>%
+  write_rds("data/02_dt_train_block.rds")
+
+dt_test_kmeans %>%
+  write_rds("data/02_dt_test_kmeans.rds")
+dt_val_kmeans %>%
+  write_rds("data/02_dt_val_kmeans.rds")
+dt_train_kmeans %>%
+  write_rds("data/02_dt_train_kmeans.rds")
