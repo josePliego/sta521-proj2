@@ -41,7 +41,7 @@ make_clusters <- function(dt, k) {
   clust <- kmeans(
     select(dt, x, y),
     centers = k,
-    iter.max = 100L,
+    iter.max = 1000L,
     nstart = 3L
     )
 
