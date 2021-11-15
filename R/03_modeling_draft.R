@@ -151,6 +151,8 @@ svm_tune_fit <- svm_wf %>%
     metrics = metric_set(accuracy, roc_auc)
   )
 
+write_rds(svm_tune_fit, "data/03_svm_tune.rds")
+
 # cv_svm <- CVmaster(
 #   dt_train_svm,
 #   mod_svm,
@@ -164,31 +166,100 @@ svm_wf <- workflow() %>%
   add_recipe(rec_svm) %>%
   add_model(mod_svm)
 
-start_grid <-
-  svm_wf %>%
+svm_tune_fit$.notes
+
+svm_tune_fit %>%
+  select(id, .metrics) %>%
+  unnest(.metrics) %>%
+  filter(.metric == "accuracy") %>%
+  arrange(-.estimate)
+
+svm_tune_fit %>%
+  select(id, .metrics) %>%
+  unnest(.metrics) %>%
+  filter(.metric == "roc_auc") %>%
+  arrange(-.estimate)
+
+best_cost <- 0.177
+best_sigma <- 1
+
+mod_svm <- svm_rbf(
+  mode = "classification",
+  engine = "kernlab",
+  cost = best_cost,
+  rbf_sigma = best_sigma
+  )
+
+cv_svm <- CVmaster(
+  dt_train_svm,
+  mod_svm,
+  rec_svm,
+  .method = "block",
+  .columns = 2,
+  .rows = 2
+)
+
+write_rds(cv_svm, "data/03_svm_cv.rds")
+
+
+# 5. XGBoost --------------------------------------------------------------
+dt_train_xg <- dt_train %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
+
+rec_xg <- recipe(label ~., data = dt_train_xg) %>%
+  step_rm(x, y, img) %>%
+  step_scale(all_predictors())
+
+# Tuning
+
+cvsplit_xg_tune <- make_cvsplits(dt_train_xg, .method = "kmeans", .k = 5)
+mod_xg_tune <- boost_tree(
+  mode = "classification",
+  engine = "xgboost",
+  trees = 1000,
+  tree_depth = tune(),
+  min_n = tune(),
+  loss_reduction = tune(),
+  sample_size = tune(),
+  mtry = tune(),
+  learn_rate = tune(),
+)
+
+xg_grid <- grid_latin_hypercube(
+  tree_depth(),
+  min_n(),
+  loss_reduction(),
+  sample_size = sample_prop(),
+  finalize(mtry(), dt_train),
+  learn_rate(),
+  size = 30
+)
+
+xg_wf <- workflow() %>%
+  add_recipe(rec_xg) %>%
+  add_model(mod_xg_tune)
+
+doParallel::registerDoParallel()
+
+set.seed(234)
+xgb_res <- tune_grid(
+  xg_wf,
+  resamples = cvsplit_xg_tune,
+  grid = xg_grid
+)
+
+xgb_res
+
+xg_grid <- xg_wf %>%
   parameters() %>%
-  update(
-    cost = cost(c(-6, 1))
-    ) %>%
-  grid_regular(levels = 3)
+  grid_regular()
 
-svm_wflow <- svm_wf %>%
+xg_tune_fit <- xg_wf %>%
   tune_grid(
-    resamples = make_splits(dt_train_svm, .method = "kmeans", .k = 2),
-    grid = start_grid,
-    metrics = metric_set(accuracy)
-    )
+    resamples = cvsplit_tune,
+    grid = xg_grid,
+    metrics = metric_set(accuracy, roc_auc)
+  )
 
-
-workflow() %>%
-  add_recipe(rec_svm) %>%
-  add_model(mod_svm) %>%
-  fit(dt_train_svm)
-
-cv_lda
-
-cv_lda %>%
-  summarise(across(.estimate, mean))
-
-# Random Forest
-# Boosted Trees
+write_rds(xg_tune_fit, "data/03_xg_tune.rds")
