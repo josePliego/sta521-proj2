@@ -4,6 +4,7 @@ library(tidymodels)
 library(tidyverse)
 library(discrim)
 library(MASS, pos = 999)
+library(klaR)
 
 source("R/02_CVmaster.R")
 
@@ -448,8 +449,34 @@ cv_qda <- CVmaster(
   .rows = 3
 )
 
+# Naive Bayes
+
+dt_train_nb <- dt_train %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
 
 
+rec_nb <- recipe(label ~., data = dt_train_nb) %>%
+  step_rm(x, y, img) %>%
+  step_scale(all_predictors())
 
+mod_nb <- naive_Bayes(
+  mode = "classification",
+  engine = "klaR",
+  smoothness = NULL,
+  Laplace = NULL
+)
 
-# Boosted Trees
+cv_nb <- CVmaster(
+  dt_train_nb,
+  mod_nb,
+  rec_nb,
+  .method = "block",
+  .columns = 3,
+  .rows = 3
+)
+
+cv_nb
+
+cv_nb %>%
+  summarise(across(.estimate, mean))
