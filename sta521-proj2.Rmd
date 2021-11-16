@@ -290,4 +290,14 @@ As a visual assessment, we show the values of \texttt{ndai} plotted in space for
 
 The visual cues in figures \@ref(fig:labdensities) and \@ref(fig:ndai), along with the quantification of AUC in table \@ref(tab:aucsingle), suggest that \texttt{ndai} is the most useful feature for predicting pixel labels. The AUC results suggest \texttt{sd} and \texttt{rad\_af} as the second and third most important features, but this can change based on how the predictors behave when used simultaneously in a classification model.
 
+## Cross Validation
+
+To ease the implementation of different classification algorithms using the splitting methods discussed before (block splits and k-means), we used the R package `tidymodels` (@tidymodels). First of all, we created two splitting functions, one for each method, that return a split object as created by the package `rsample` (@rsample). This split object can then be used with the `tidymodels` constructors.
+
+As a brief overview, our function takes as inputs a training set, split method, classification algorithm, a set of metrics, and additional parameters related to these objects, and returns the metrics obtained in each cross validation fold.
+
+# Modeling
+
+For the modeling, we use the block splits created in section 2 as test and training sets. For the training set, we combine both the original training and validation set. Because we have to split the training set for cross validation, we rearrange the training set by shifting the $x$ coordinates for the different images. This way, whether we use block splits or k-means, blocks and clusters will mainly contain pixels from the same image.
+
 # Bibliography
