@@ -3,6 +3,9 @@
 library(tidymodels)
 library(tidyverse)
 library(discrim)
+library(xgboost)
+library(kernlab)
+library(klaR)
 library(MASS, pos = 999)
 
 dt_train <- read_rds("data/02_dt_train_block.rds") %>%
@@ -10,7 +13,6 @@ dt_train <- read_rds("data/02_dt_train_block.rds") %>%
   mutate(
     across(x, ~if_else(img == "img3", .x + 299, .x))
   )
-
 
 # Logistic Regression -----------------------------------------------------
 
@@ -153,6 +155,119 @@ qda_roc = roc_qda %>%
 ggsave(
   "graphs/ROC_qda.png",
   qda_roc,
+  width = 2.99 * 2,
+  height = 3.82 * 2,
+  units = "cm"
+)
+
+
+
+
+
+
+# XGBoost ---------------------------------------------------------------------
+
+dt_train_XGB <- dt_train %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
+
+rec_XGB <- recipe(label ~., data = dt_train_XGB) %>%
+  step_rm(x, y, img) %>%
+  step_scale(all_predictors())
+
+xg_tune_fit <- read_rds("data/03_xg_tune.rds")
+xg_tune_fit %>%
+  select_best("accuracy")
+xg_tune_best <- xg_tune_fit %>%
+  select_best("roc_auc")
+
+mod_XGB <- boost_tree(
+  mode = "classification",
+  engine = "xgboost",
+  trees = 1000,
+  tree_depth = xg_tune_best$tree_depth,
+  min_n = xg_tune_best$min_n,
+  loss_reduction = xg_tune_best$loss_reduction,
+  sample_size = xg_tune_best$sample_size,
+  mtry = xg_tune_best$mtry,
+  learn_rate = xg_tune_best$learn_rate
+)
+
+wf_XGB <- workflow() %>%
+  add_model(mod_XGB) %>%
+  add_recipe(rec_XGB)
+
+fit_XGB <- wf_XGB %>%
+  fit(dt_train_XGB)
+
+roc_XGB <- fit_XGB %>%
+  augment(new_data = dt_train_XGB) %>%
+  roc_curve(label, .pred_0)
+
+fit_XGB %>%
+  augment(new_data = dt_train_XGB) %>%
+  roc_auc(label, .pred_0)
+
+XGB_roc = roc_XGB %>%
+  autoplot() +
+  geom_point(
+    data = roc_XGB %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    aes(x = 1 - specificity, y = sensitivity),
+    color = "red",
+    size = 1
+  )
+
+ggsave(
+  "graphs/ROC_XGBoost.png",
+  nb_roc,
+  width = 2.99 * 2,
+  height = 3.82 * 2,
+  units = "cm"
+)
+
+
+# Naive Bayes -------------------------------------------------------------
+
+dt_train_nb <- dt_train %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
+
+rec_nb <- recipe(label ~., data = dt_train_nb) %>%
+  step_rm(x, y, img) %>%
+  step_scale(all_predictors())
+
+mod_nb <- naive_Bayes(
+  mode = "classification",
+  engine = "klaR"
+)
+
+wf_nb <- workflow() %>%
+  add_model(mod_nb) %>%
+  add_recipe(rec_nb)
+
+fit_nb <- wf_nb %>%
+  fit(dt_train_nb)
+
+roc_nb <- fit_nb %>%
+  augment(new_data = dt_train_nb) %>%
+  roc_curve(label, .pred_0)
+
+fit_nb %>%
+  augment(new_data = dt_train_nb) %>%
+  roc_auc(label, .pred_0)
+
+nb_roc = roc_nb %>%
+  autoplot() +
+  geom_point(
+    data = roc_nb %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    aes(x = 1 - specificity, y = sensitivity),
+    color = "red",
+    size = 1
+  )
+
+ggsave(
+  "graphs/ROC_naivebayes.png",
+  nb_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,
   units = "cm"
