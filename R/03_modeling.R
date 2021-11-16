@@ -14,6 +14,10 @@ dt_train <- read_rds("data/02_dt_train_block.rds") %>%
     across(x, ~if_else(img == "img3", .x + 299, .x))
   )
 
+dt_test <- read_rds("data/02_dt_test_block.rds") %>%
+  select(-block)
+
+set.seed(42)
 
 # 1. Logistic Regression --------------------------------------------------
 
@@ -30,7 +34,7 @@ mod_logreg <- logistic_reg(
   engine = "glm"
   )
 
-cv_logreg <- CVmaster(
+cvblock_logreg <- CVmaster(
   dt_train_logreg,
   mod_logreg,
   rec_logreg,
@@ -39,30 +43,46 @@ cv_logreg <- CVmaster(
   .rows = 3
 )
 
-summary_logrec = cv_logreg %>%
-  mutate(model = "Logistic Regression")
+summaryblock_logreg <- cvblock_logreg %>%
+  mutate(
+    model = "Logistic Regression",
+    method = "Block"
+    )
 
-cv_logreg %>%
-  summarise(across(.estimate, mean))
-
-# Logistic Regression PCA
-
-rec_pca_logreg <- rec_logreg %>%
-  step_pca(all_predictors(), num_comp = 6)
-
-cv_pca_logreg <- CVmaster(
+cvkmeans_logreg <- CVmaster(
   dt_train_logreg,
   mod_logreg,
-  rec_pca_logreg,
-  .method = "block",
-  .columns = 3,
-  .rows = 3
+  rec_logreg,
+  .method = "kmeans",
+  .k = 9
 )
 
-cv_pca_logreg
+summarykmeans_logreg <- cvkmeans_logreg %>%
+  mutate(
+    model = "Logistic Regression",
+    method = "k-means"
+  )
 
-cv_pca_logreg %>%
-  summarise(across(.estimate, mean))
+# Logistic Regression PCA
+# 6 PCAs perform similar to the 8 predictors
+# We do a deep dive of PCA in section 4
+
+# rec_pca_logreg <- rec_logreg %>%
+#   step_pca(all_predictors(), num_comp = 6)
+
+# cv_pca_logreg <- CVmaster(
+#   dt_train_logreg,
+#   mod_logreg,
+#   rec_pca_logreg,
+#   .method = "block",
+#   .columns = 3,
+#   .rows = 3
+# )
+
+# cv_pca_logreg
+
+# cv_pca_logreg %>%
+#   summarise(across(.estimate, mean))
 
 
 # 2. LDA ------------------------------------------------------------------
@@ -80,7 +100,7 @@ rec_lda <- recipe(label ~., data = dt_train_lda) %>%
   step_rm(x, y, img) %>%
   step_scale(all_predictors())
 
-cv_lda <- CVmaster(
+cvblock_lda <- CVmaster(
   dt_train_lda,
   mod_lda,
   rec_lda,
@@ -89,37 +109,45 @@ cv_lda <- CVmaster(
   .rows = 3
 )
 
-summary_lda = cv_lda %>%
-  mutate(model = "LDA")
+summaryblock_lda <- cvblock_lda %>%
+  mutate(model = "LDA", method = "Block")
 
-cv_lda %>%
-  summarise(across(.estimate, mean))
+cvkmeans_lda <- CVmaster(
+  dt_train_lda,
+  mod_lda,
+  rec_lda,
+  .method = "kmeans",
+  .k = 9
+)
+
+summarykmeans_lda <- cvkmeans_lda %>%
+  mutate(model = "LDA", method = "K-means")
 
 # PCA LDA
 
-rec_pca_lda <- rec_lda %>%
-  step_pca(all_predictors(), num_comp = 8)
-
-rec_pca_lda %>%
-  prep() %>%
-  juice() %>%
-  pivot_longer(cols = -label) %>%
-  ggplot(aes(x = value, fill = label)) +
-  geom_density() +
-  facet_wrap(~name, scales = "free")
-
-cv_pca_lda <- CVmaster(
-  dt_train_lda,
-  mod_lda,
-  rec_pca_lda,
-  .method = "kmeans",
-  .k = 10
-)
-
-cv_pca_lda
-
-cv_pca_lda %>%
-  summarise(across(.estimate, mean))
+# rec_pca_lda <- rec_lda %>%
+#   step_pca(all_predictors(), num_comp = 8)
+#
+# rec_pca_lda %>%
+#   prep() %>%
+#   juice() %>%
+#   pivot_longer(cols = -label) %>%
+#   ggplot(aes(x = value, fill = label)) +
+#   geom_density() +
+#   facet_wrap(~name, scales = "free")
+#
+# cv_pca_lda <- CVmaster(
+#   dt_train_lda,
+#   mod_lda,
+#   rec_pca_lda,
+#   .method = "kmeans",
+#   .k = 10
+# )
+#
+# cv_pca_lda
+#
+# cv_pca_lda %>%
+#   summarise(across(.estimate, mean))
 
 
 # 3. QDA ------------------------------------------------------------------
@@ -140,7 +168,7 @@ mod_qda <- discrim_quad(
   regularization_method = NULL
 )
 
-cv_qda <- CVmaster(
+cvblock_qda <- CVmaster(
   dt_train_qda,
   mod_qda,
   rec_qda,
@@ -149,68 +177,45 @@ cv_qda <- CVmaster(
   .rows = 3
 )
 
-summary_qda = cv_qda %>%
-  mutate(model = "QDA")
+summaryblock_qda = cvblock_qda %>%
+  mutate(model = "QDA", method = "Block")
 
-cv_qda %>%
-  summarise(across(.estimate, mean))
-
-#QDA more blocks
-
-dt_train_qda <- dt_train %>%
-  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
-  mutate(across(label, factor))
-
-rec_qda <- recipe(label ~., data = dt_train_qda) %>%
-  step_rm(x, y, img) %>%
-  step_scale(all_predictors())
-
-mod_qda <- discrim_quad(
-  mode = "classification",
-  engine = "MASS",
-  regularization_method = NULL
-)
-
-cv_qda <- CVmaster(
+cvkmeans_qda <- CVmaster(
   dt_train_qda,
   mod_qda,
   rec_qda,
-  .method = "block",
-  .columns = 10,
-  .rows = 10
+  .method = "kmeans",
+  .k = 9
 )
 
-cv_qda
-
-cv_qda %>%
-  summarise(across(.estimate, mean))
-
+summarykmeans_qda = cvkmeans_qda %>%
+  mutate(model = "QDA", method = "K-means")
 
 #PCA QDA
 
-rec_pca_qda <- rec_qda %>%
-  step_pca(all_predictors(), num_comp = 8)
-
-rec_pca_qda %>%
-  prep() %>%
-  juice() %>%
-  pivot_longer(cols = -label) %>%
-  ggplot(aes(x = value, fill = label)) +
-  geom_density() +
-  facet_wrap(~name, scales = "free")
-
-cv_pca_qda <- CVmaster(
-  dt_train_qda,
-  mod_qda,
-  rec_pca_qda,
-  .method = "kmeans",
-  .k = 10
-)
-
-cv_pca_qda
-
-cv_pca_qda %>%
-  summarise(across(.estimate, mean))
+# rec_pca_qda <- rec_qda %>%
+#   step_pca(all_predictors(), num_comp = 8)
+#
+# rec_pca_qda %>%
+#   prep() %>%
+#   juice() %>%
+#   pivot_longer(cols = -label) %>%
+#   ggplot(aes(x = value, fill = label)) +
+#   geom_density() +
+#   facet_wrap(~name, scales = "free")
+#
+# cv_pca_qda <- CVmaster(
+#   dt_train_qda,
+#   mod_qda,
+#   rec_pca_qda,
+#   .method = "kmeans",
+#   .k = 10
+# )
+#
+# cv_pca_qda
+#
+# cv_pca_qda %>%
+#   summarise(across(.estimate, mean))
 
 # 4. SVM ------------------------------------------------------------------
 
@@ -342,7 +347,7 @@ mod_xg_tune <- boost_tree(
   loss_reduction = tune(),
   sample_size = tune(),
   mtry = tune(),
-  learn_rate = tune(),
+  learn_rate = tune()
 )
 
 xg_grid <- grid_latin_hypercube(
@@ -359,29 +364,74 @@ xg_wf <- workflow() %>%
   add_recipe(rec_xg) %>%
   add_model(mod_xg_tune)
 
-doParallel::registerDoParallel(cores = 4)
+doParallel::registerDoParallel(cores = 2)
 
 set.seed(42)
 xgb_res <- tune_grid(
   xg_wf,
   resamples = cvsplit_xg_tune,
-  grid = xg_grid
+  grid = xg_grid,
+  metrics = metric_set(accuracy, roc_auc)
 )
 
-xgb_res$.notes
+write_rds(xgb_res, "data/03_xg_tune.rds")
+xg_tune_fit <- read_rds("data/03_xg_tune.rds")
+xg_tune_fit %>%
+  select_best("accuracy")
+xg_tune_best <- xg_tune_fit %>%
+  select_best("roc_auc")
+write_rds(xg_tune_best, "data/03_xg_best.rds")
+# Same best model for accuracy and roc
 
-xg_grid <- xg_wf %>%
-  parameters() %>%
-  grid_regular()
+# Final fit
+mod_xg <- boost_tree(
+  mode = "classification",
+  engine = "xgboost",
+  trees = 1000,
+  tree_depth = xg_tune_best$tree_depth,
+  min_n = xg_tune_best$min_n,
+  loss_reduction = xg_tune_best$loss_reduction,
+  sample_size = xg_tune_best$sample_size,
+  mtry = xg_tune_best$mtry,
+  learn_rate = xg_tune_best$learn_rate
+)
 
-xg_tune_fit <- xg_wf %>%
-  tune_grid(
-    resamples = cvsplit_tune,
-    grid = xg_grid,
-    metrics = metric_set(accuracy, roc_auc)
-  )
+wf_xg <- workflow() %>%
+  add_recipe(rec_xg) %>%
+  add_model(mod_xg)
 
-write_rds(xg_tune_fit, "data/03_xg_tune.rds")
+fit_xg <- wf_xg %>%
+  fit(dt_train_xg)
+
+dt_aug_xg <- fit_xg %>%
+  augment(new_data = dt_train_xg)
+
+dt_aug_xg %>%
+  roc_auc(label, .pred_0)
+
+dt_test_xg <- dt_test %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
+
+dt_test_xg %>%
+  bind_cols(
+    predict(fit_xg, new_data = dt_test_xg, type = "prob")
+  ) %>%
+  roc_auc(label, .pred_0)
+
+dt_test_xg %>%
+  bind_cols(
+    predict(fit_xg, new_data = dt_test_xg, type = "prob")
+  ) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point(aes(color = .pred_0), size = 0.6)
+
+dt_test_xg %>%
+  bind_cols(
+    predict(fit_xg, new_data = dt_test_xg, type = "prob")
+  ) %>%
+  mutate(pred = factor(if_else(.pred_0 > 0.5, 0, 1))) %>%
+  summarise(mean(pred == label))
 
 
 # 6. Naive Bayes ----------------------------------------------------------
@@ -389,7 +439,6 @@ write_rds(xg_tune_fit, "data/03_xg_tune.rds")
 dt_train_nb <- dt_train %>%
   mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
   mutate(across(label, factor))
-
 
 rec_nb <- recipe(label ~., data = dt_train_nb) %>%
   step_rm(x, y, img) %>%
