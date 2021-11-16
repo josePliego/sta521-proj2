@@ -207,13 +207,31 @@ dt_train_xg <- dt_train %>%
   mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
   mutate(across(label, factor))
 
+set.seed(43)
+cvsplit_xg <- make_cvsplits(
+  dt_train_xg,
+  .method = "block",
+  .columns = 2,
+  .rows = 2
+  )
+rand_index_xg <- sample(1:NROW(cvsplit_xg), size = 1)
+
+subsample_xg <- assessment(
+  cvsplit_xg[rand_index_xg, 1]$splits[[1]]
+  )
+
 rec_xg <- recipe(label ~., data = dt_train_xg) %>%
   step_rm(x, y, img) %>%
   step_scale(all_predictors())
 
 # Tuning
+cvsplit_xg_tune <- make_cvsplits(
+  subsample_xg,
+  .method = "block",
+  .columns = 4,
+  .rows = 4
+  )
 
-cvsplit_xg_tune <- make_cvsplits(dt_train_xg, .method = "kmeans", .k = 5)
 mod_xg_tune <- boost_tree(
   mode = "classification",
   engine = "xgboost",
@@ -240,16 +258,16 @@ xg_wf <- workflow() %>%
   add_recipe(rec_xg) %>%
   add_model(mod_xg_tune)
 
-doParallel::registerDoParallel()
+doParallel::registerDoParallel(cores = 4)
 
-set.seed(234)
+set.seed(42)
 xgb_res <- tune_grid(
   xg_wf,
   resamples = cvsplit_xg_tune,
   grid = xg_grid
 )
 
-xgb_res
+xgb_res$.notes
 
 xg_grid <- xg_wf %>%
   parameters() %>%
