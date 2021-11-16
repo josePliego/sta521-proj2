@@ -281,3 +281,54 @@ xg_tune_fit <- xg_wf %>%
   )
 
 write_rds(xg_tune_fit, "data/03_xg_tune.rds")
+
+
+# 6. Random Forest --------------------------------------------------------
+
+dt_train_rf <- dt_train %>%
+  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, factor))
+
+set.seed(44)
+cvsplit_rf <- make_cvsplits(
+  dt_train_rf,
+  .method = "block",
+  .columns = 3,
+  .rows = 3
+)
+rand_index_rf <- sample(1:NROW(cvsplit_rf), size = 1)
+
+subsample_rf <- assessment(
+  cvsplit_rf[rand_index_rf, 1]$splits[[1]]
+)
+
+rec_rf <- recipe(label ~., data = dt_train_rf) %>%
+  step_rm(x, y, img) %>%
+  step_scale(all_predictors())
+
+# Tuning
+cvsplit_rf_tune <- make_cvsplits(
+  subsample_rf,
+  .method = "kmeans",
+  .k = 4
+)
+
+mod_rf_tune <- rand_forest(
+  mode = "classification",
+  engine = "ranger",
+  trees = 1000,
+  min_n = tune(),
+  mtry = tune()
+)
+
+rf_tune_wf <- workflow() %>%
+  add_recipe(rec_rf) %>%
+  add_model(mod_rf_tune)
+
+doParallel::registerDoParallel(cores = 2)
+set.seed(42)
+tune_rf <- tune_grid(
+  rf_tune_wf,
+  resamples = cvsplit_rf_tune,
+  grid = 10
+)
