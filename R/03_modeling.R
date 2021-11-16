@@ -37,10 +37,13 @@ cv_logreg <- CVmaster(
   .rows = 3
 )
 
-cv_logreg
+summary_logrec = cv_logreg %>%
+  mutate(model = "Logistic Regression")
 
 cv_logreg %>%
   summarise(across(.estimate, mean))
+
+# Logistic Regression PCA
 
 rec_pca_logreg <- rec_logreg %>%
   step_pca(all_predictors(), num_comp = 6)
@@ -83,10 +86,13 @@ cv_lda <- CVmaster(
   .rows = 3
 )
 
-cv_lda
+summary_lda = cv_lda %>%
+  mutate(model = "LDA")
 
 cv_lda %>%
   summarise(across(.estimate, mean))
+
+# PCA LDA
 
 rec_pca_lda <- rec_lda %>%
   step_pca(all_predictors(), num_comp = 8)
@@ -111,7 +117,6 @@ cv_pca_lda
 
 cv_pca_lda %>%
   summarise(across(.estimate, mean))
-
 
 
 # QDA less blocks
@@ -139,7 +144,8 @@ cv_qda <- CVmaster(
   .rows = 3
 )
 
-cv_qda
+summary_qda = cv_qda %>%
+  mutate(model = "QDA")
 
 cv_qda %>%
   summarise(across(.estimate, mean))
@@ -200,7 +206,6 @@ cv_pca_qda
 
 cv_pca_qda %>%
   summarise(across(.estimate, mean))
-
 
 
 # SVM
@@ -303,7 +308,8 @@ cv_qda <- CVmaster(
   .rows = 3
 )
 
-cv_qda
+summary_qda = cv_qda %>%
+  mutate(model = "QDA")
 
 cv_qda %>%
   summarise(across(.estimate, mean))
@@ -383,15 +389,6 @@ rec_svm <- recipe(label ~., data = dt_train_svm) %>%
   step_rm(x, y, img) %>%
   step_scale(all_predictors())
 
-# cv_svm <- CVmaster(
-#   dt_train_svm,
-#   mod_svm,
-#   rec_svm,
-#   .method = "block",
-#   .columns = 2,
-#   .rows = 1
-# )
-
 svm_wf <- workflow() %>%
   add_recipe(rec_svm) %>%
   add_model(mod_svm)
@@ -422,32 +419,6 @@ cv_lda
 cv_lda %>%
   summarise(across(.estimate, mean))
 
-# Random Forest
-
-dt_train_rf <- dt_train %>%
-  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
-  mutate(across(label, factor))
-
-splitss = make_cvsplits(dt_train_rf, "block", 5, 1)
-
-rec_rf <- recipe(label ~., data = dt_train_rf) %>%
-  step_rm(x, y, img) %>%
-  step_scale(all_predictors())
-
-mod_rf <- discrim_quad(
-  mode = "classification",
-  engine = "ranger",
-
-)
-
-cv_qda <- CVmaster(
-  dt_train_qda,
-  mod_qda,
-  rec_qda,
-  .method = "block",
-  .columns = 3,
-  .rows = 3
-)
 
 # Naive Bayes
 
@@ -476,7 +447,12 @@ cv_nb <- CVmaster(
   .rows = 3
 )
 
-cv_nb
+summary_nb = cv_nb %>%
+  mutate(model = "NaiveBayes")
 
 cv_nb %>%
   summarise(across(.estimate, mean))
+
+summary = cbind(summary_lda, summary_logrec, summary_nb, summary_qda)
+
+
