@@ -64,6 +64,7 @@ summarykmeans_logreg <- cvkmeans_logreg %>%
   )
 
 
+
 # Logistic Regression PCA
 # 6 PCAs perform similar to the 8 predictors
 # We do a deep dive of PCA in section 4
@@ -299,19 +300,20 @@ cvblock_svm <- CVmaster(
   mod_svm,
   rec_svm,
   .method = "block",
-  .columns = 2,
-  .rows = 2
+  .columns = 3,
+  .rows = 3
 )
 
 summaryblock_svm = cvblock_svm %>%
   mutate(model = "SVM", method = "Block")
 
+write_rds(cvblock_svm, "data/03_svm_cvblock.rds")
 
-cv_svm <- CVmaster(
+cvkmeans_svm <- CVmaster(
   dt_train_svm,
   mod_svm,
   rec_svm,
-  .method = "K-means",
+  .method = "kmeans",
   .k = 9
 )
 
@@ -319,7 +321,7 @@ summarykmeans_svm = cvkmeans_svm %>%
   mutate(model = "SVM", method = "K-means")
 
 
-write_rds(cv_svm, "data/03_svm_cv.rds")
+write_rds(cvkmeans_svm, "data/03_svm_cvkmeans.rds")
 
 
 # 5. XGBoost --------------------------------------------------------------
@@ -416,61 +418,24 @@ cvblock_xg <- CVmaster(
   mod_xg,
   rec_xg,
   .method = "block",
-  .columns = 2,
-  .rows = 2
+  .columns = 3,
+  .rows = 3
 )
 
 summaryblock_xg = cvblock_xg %>%
   mutate(model = "XGBoost", method = "Block")
 
 
-cv_svm <- CVmaster(
+cvkmeans_svm <- CVmaster(
   dt_train_svm,
   mod_xg,
   rec_xg,
-  .method = "K-means",
+  .method = "kmeans",
   .k = 9
 )
 
 summarykmeans_svm = cvkmeans_svm %>%
   mutate(model = "SVM", method = "K-means")
-
-wf_xg <- workflow() %>%
-  add_recipe(rec_xg) %>%
-  add_model(mod_xg)
-
-fit_xg <- wf_xg %>%
-  fit(dt_train_xg)
-
-dt_aug_xg <- fit_xg %>%
-  augment(new_data = dt_train_xg)
-
-dt_aug_xg %>%
-  roc_auc(label, .pred_0)
-
-dt_test_xg <- dt_test %>%
-  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
-  mutate(across(label, factor))
-
-dt_test_xg %>%
-  bind_cols(
-    predict(fit_xg, new_data = dt_test_xg, type = "prob")
-  ) %>%
-  roc_auc(label, .pred_0)
-
-dt_test_xg %>%
-  bind_cols(
-    predict(fit_xg, new_data = dt_test_xg, type = "prob")
-  ) %>%
-  ggplot(aes(x = x, y = y)) +
-  geom_point(aes(color = .pred_0), size = 0.6)
-
-dt_test_xg %>%
-  bind_cols(
-    predict(fit_xg, new_data = dt_test_xg, type = "prob")
-  ) %>%
-  mutate(pred = factor(if_else(.pred_0 > 0.5, 0, 1))) %>%
-  summarise(mean(pred == label))
 
 
 # 6. Naive Bayes ----------------------------------------------------------
@@ -513,4 +478,5 @@ cvkmeans_nb <- CVmaster(
 
 summarykmeans_nb = cvkmeans_nb %>%
   mutate(model = "Naive Bayes", method = "K-means")
+
 
