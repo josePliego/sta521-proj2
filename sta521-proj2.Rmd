@@ -314,11 +314,12 @@ LDA: Estimates a multivariate distribution for the predictors separately for the
 
 QDA:  Estimates a multivariate distribution for the predictors separately for the data in each class (Gaussian with separate covariance matrices). Bayes' theorem is used to compute the probability of each class, given the predictor values.
 
-SVM: 
+SVM: Cost and Sigma parameters are tuned using grid.
 
-XGBoost:
+XGBoost: Tree_depth, min_n, loss_reduction, sample size mtry, learn rate are all tuned using grid.
 
 Naive Bayes: We assume independence of predictors. 
 
+For selecting the ROC threshold, generally we have to consider the type of problem at hand and whether it is more costly to commit false positives or false negatives. That is, the problem entails cost function optimization (specifically minimization). After obtimizing cost, we are able to obtain a threshold and to derive the respective specificity and sensitivity. In this case, we will assume that the cost of a false negative (detecting no cloud when there is a cloud) and a false positive (detecting cloud when there is no cloud) as equally costly due to the fact that both errors, overestimating and underestimating clouds, lead to incorrectly predicting increases in temperature. We therefore find the point on the ROC that has the minimum Euclidean from the top left corner in the ROC curve (i.e. sensitivity = 1, 1-specificity = 0) and the associated threshold at that point. 
 
 # Bibliography
