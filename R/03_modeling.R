@@ -63,6 +63,7 @@ summarykmeans_logreg <- cvkmeans_logreg %>%
     method = "k-means"
   )
 
+
 # Logistic Regression PCA
 # 6 PCAs perform similar to the 8 predictors
 # We do a deep dive of PCA in section 4
@@ -151,8 +152,6 @@ summarykmeans_lda <- cvkmeans_lda %>%
 
 
 # 3. QDA ------------------------------------------------------------------
-
-# QDA less blocks
 
 dt_train_qda <- dt_train %>%
   mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
@@ -295,7 +294,7 @@ mod_svm <- svm_rbf(
   rbf_sigma = best_sigma
 )
 
-cv_svm <- CVmaster(
+cvblock_svm <- CVmaster(
   dt_train_svm,
   mod_svm,
   rec_svm,
@@ -303,6 +302,22 @@ cv_svm <- CVmaster(
   .columns = 2,
   .rows = 2
 )
+
+summaryblock_svm = cvblock_svm %>%
+  mutate(model = "SVM", method = "Block")
+
+
+cv_svm <- CVmaster(
+  dt_train_svm,
+  mod_svm,
+  rec_svm,
+  .method = "K-means",
+  .k = 9
+)
+
+summarykmeans_svm = cvkmeans_svm %>%
+  mutate(model = "SVM", method = "K-means")
+
 
 write_rds(cv_svm, "data/03_svm_cv.rds")
 
@@ -396,6 +411,30 @@ mod_xg <- boost_tree(
   learn_rate = xg_tune_best$learn_rate
 )
 
+cvblock_xg <- CVmaster(
+  dt_train_svm,
+  mod_xg,
+  rec_xg,
+  .method = "block",
+  .columns = 2,
+  .rows = 2
+)
+
+summaryblock_xg = cvblock_xg %>%
+  mutate(model = "XGBoost", method = "Block")
+
+
+cv_svm <- CVmaster(
+  dt_train_svm,
+  mod_xg,
+  rec_xg,
+  .method = "K-means",
+  .k = 9
+)
+
+summarykmeans_svm = cvkmeans_svm %>%
+  mutate(model = "SVM", method = "K-means")
+
 wf_xg <- workflow() %>%
   add_recipe(rec_xg) %>%
   add_model(mod_xg)
@@ -451,7 +490,7 @@ mod_nb <- naive_Bayes(
   Laplace = NULL
 )
 
-cv_nb <- CVmaster(
+cvblock_nb <- CVmaster(
   dt_train_nb,
   mod_nb,
   rec_nb,
@@ -460,10 +499,18 @@ cv_nb <- CVmaster(
   .rows = 3
 )
 
-summary_nb = cv_nb %>%
-  mutate(model = "NaiveBayes")
+summaryblock_nb = cvblock_nb %>%
+  mutate(model = "Naive Bayes", method = "Block")
 
-cv_nb %>%
-  summarise(across(.estimate, mean))
 
-summary = cbind(summary_lda, summary_logrec, summary_nb, summary_qda)
+cvkmeans_nb <- CVmaster(
+  dt_train_svm,
+  mod_svm,
+  rec_svm,
+  .method = "K-means",
+  .k = 9
+)
+
+summarykmeans_nb = cvkmeans_nb %>%
+  mutate(model = "Naive Bayes", method = "K-means")
+
