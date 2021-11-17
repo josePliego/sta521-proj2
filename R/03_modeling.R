@@ -414,7 +414,7 @@ mod_xg <- boost_tree(
 )
 
 cvblock_xg <- CVmaster(
-  dt_train_svm,
+  dt_train_xg,
   mod_xg,
   rec_xg,
   .method = "block",
@@ -423,19 +423,23 @@ cvblock_xg <- CVmaster(
 )
 
 summaryblock_xg = cvblock_xg %>%
-  mutate(model = "XGBoost", method = "Block")
+  mutate(model = "xg", method = "Block")
 
+write_rds(cvblock_xg, "data/03_xg_cvblock.rds")
 
-cvkmeans_svm <- CVmaster(
-  dt_train_svm,
+cvkmeans_xg <- CVmaster(
+  dt_train_xg,
   mod_xg,
   rec_xg,
   .method = "kmeans",
   .k = 9
 )
 
-summarykmeans_svm = cvkmeans_svm %>%
-  mutate(model = "SVM", method = "K-means")
+summarykmeans_xg = cvkmeans_xg %>%
+  mutate(model = "xg", method = "K-means")
+
+
+write_rds(cvkmeans_xg, "data/03_xg_cvkmeans.rds")
 
 
 # 6. Naive Bayes ----------------------------------------------------------

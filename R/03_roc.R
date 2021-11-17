@@ -3,10 +3,10 @@
 library(tidymodels)
 library(tidyverse)
 library(discrim)
-library(xgboost)
+library(xgboost, pos = 998)
 library(kernlab)
-library(klaR)
 library(MASS, pos = 999)
+library(klaR)
 
 dt_train <- read_rds("data/02_dt_train_block.rds") %>%
   select(-block) %>%
@@ -40,21 +40,34 @@ roc_logreg <- fit_logreg %>%
   augment(new_data = dt_train_logreg) %>%
   roc_curve(label, .pred_0)
 
-fit_logreg %>%
+thres_logreg <- roc_logreg %>%
+  mutate(dist = sqrt((1-specificity)^2 + (sensitivity - 1)^2)) %>%
+  arrange(dist) %>%
+  dplyr::slice(1) %>%
+  .$.threshold
+
+logreg_auc <- fit_logreg %>%
   augment(new_data = dt_train_logreg) %>%
   roc_auc(label, .pred_0)
 
-logreg_roc = roc_logreg %>%
+logreg_filter_auc <- roc_logreg %>%
+  filter(abs(.threshold - thres_logreg)<0.0001) %>%
+  dplyr::slice(1)
+
+logreg_roc <- roc_logreg %>%
   autoplot() +
   geom_point(
-    data = roc_logreg %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    data = logreg_filter_auc,
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
+  ) +
+  labs(
+    subtitle = paste("AUC =", round(logreg_auc$.estimate, 3))
   )
 
 ggsave(
-  "graphs/ROC_logisticregression.png",
+  "graphs/03_ROC_logreg.png",
   logreg_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,
@@ -89,28 +102,39 @@ roc_lda <- fit_lda %>%
   augment(new_data = dt_train_lda) %>%
   roc_curve(label, .pred_0)
 
-fit_lda %>%
+thres_lda <- roc_lda %>%
+  mutate(dist = sqrt((1-specificity)^2 + (sensitivity - 1)^2)) %>%
+  arrange(dist) %>%
+  dplyr::slice(1) %>%
+  .$.threshold
+
+lda_auc <- fit_lda %>%
   augment(new_data = dt_train_lda) %>%
   roc_auc(label, .pred_0)
 
-lda_roc = roc_lda %>%
+lda_filter_auc <- roc_lda %>%
+  filter(abs(.threshold - thres_lda)<0.0001) %>%
+  dplyr::slice(1)
+
+lda_roc <- roc_lda %>%
   autoplot() +
   geom_point(
-    data = roc_lda %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    data = lda_filter_auc,
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
+  ) +
+  labs(
+    subtitle = paste("AUC =", round(lda_auc$.estimate, 3))
   )
 
 ggsave(
-  "graphs/ROC_lda.png",
+  "graphs/03_ROC_lda.png",
   lda_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,
   units = "cm"
 )
-
-
 
 
 # QDA ---------------------------------------------------------------------
@@ -139,21 +163,34 @@ roc_qda <- fit_qda %>%
   augment(new_data = dt_train_qda) %>%
   roc_curve(label, .pred_0)
 
-fit_qda %>%
+thres_qda <- roc_qda %>%
+  mutate(dist = sqrt((1-specificity)^2 + (sensitivity - 1)^2)) %>%
+  arrange(dist) %>%
+  dplyr::slice(1) %>%
+  .$.threshold
+
+qda_auc <- fit_qda %>%
   augment(new_data = dt_train_qda) %>%
   roc_auc(label, .pred_0)
 
-qda_roc = roc_qda %>%
+qda_filter_auc <- roc_qda %>%
+  filter(abs(.threshold - thres_qda)<0.0001) %>%
+  dplyr::slice(1)
+
+qda_roc <- roc_qda %>%
   autoplot() +
   geom_point(
-    data = roc_qda %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    data = qda_filter_auc,
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
+  ) +
+  labs(
+    subtitle = paste("AUC =", round(qda_auc$.estimate, 3))
   )
 
 ggsave(
-  "graphs/ROC_qda.png",
+  "graphs/03_ROC_qda.png",
   qda_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,
@@ -161,17 +198,13 @@ ggsave(
 )
 
 
-
-
-
-
 # XGBoost ---------------------------------------------------------------------
 
-dt_train_XGB <- dt_train %>%
+dt_train_xgb <- dt_train %>%
   mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
   mutate(across(label, factor))
 
-rec_XGB <- recipe(label ~., data = dt_train_XGB) %>%
+rec_xgb <- recipe(label ~., data = dt_train_xgb) %>%
   step_rm(x, y, img) %>%
   step_scale(all_predictors())
 
@@ -181,7 +214,7 @@ xg_tune_fit %>%
 xg_tune_best <- xg_tune_fit %>%
   select_best("roc_auc")
 
-mod_XGB <- boost_tree(
+mod_xgb <- boost_tree(
   mode = "classification",
   engine = "xgboost",
   trees = 1000,
@@ -193,33 +226,49 @@ mod_XGB <- boost_tree(
   learn_rate = xg_tune_best$learn_rate
 )
 
-wf_XGB <- workflow() %>%
-  add_model(mod_XGB) %>%
-  add_recipe(rec_XGB)
+wf_xgb <- workflow() %>%
+  add_model(mod_xgb) %>%
+  add_recipe(rec_xgb)
 
-fit_XGB <- wf_XGB %>%
-  fit(dt_train_XGB)
+# Saved the trained model
+# fit_xgb <- wf_xgb %>%
+#   fit(dt_train_xgb)
 
-roc_XGB <- fit_XGB %>%
-  augment(new_data = dt_train_XGB) %>%
+fit_xgb <- read_rds("data/04_fit_xg.rds")
+
+roc_xgb <- fit_xgb %>%
+  augment(new_data = dt_train_xgb) %>%
   roc_curve(label, .pred_0)
 
-fit_XGB %>%
-  augment(new_data = dt_train_XGB) %>%
+thres_xgb <- roc_xgb %>%
+  mutate(dist = sqrt((1-specificity)^2 + (sensitivity - 1)^2)) %>%
+  arrange(dist) %>%
+  dplyr::slice(1) %>%
+  .$.threshold
+
+xgb_auc <- fit_xgb %>%
+  augment(new_data = dt_train_xgb) %>%
   roc_auc(label, .pred_0)
 
-XGB_roc = roc_XGB %>%
+xgb_filter_auc <- roc_xgb %>%
+  filter(abs(.threshold - thres_xgb)<0.0001) %>%
+  dplyr::slice(1)
+
+xgb_roc <- roc_xgb %>%
   autoplot() +
   geom_point(
-    data = roc_XGB %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    data = xgb_filter_auc,
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
+  ) +
+  labs(
+    subtitle = paste("AUC =", round(xgb_auc$.estimate, 3))
   )
 
 ggsave(
-  "graphs/ROC_XGBoost.png",
-  nb_roc,
+  "graphs/03_ROC_xgb.png",
+  xgb_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,
   units = "cm"
@@ -252,21 +301,34 @@ roc_nb <- fit_nb %>%
   augment(new_data = dt_train_nb) %>%
   roc_curve(label, .pred_0)
 
-fit_nb %>%
+thres_nb <- roc_nb %>%
+  mutate(dist = sqrt((1-specificity)^2 + (sensitivity - 1)^2)) %>%
+  arrange(dist) %>%
+  dplyr::slice(1) %>%
+  .$.threshold
+
+nb_auc <- fit_nb %>%
   augment(new_data = dt_train_nb) %>%
   roc_auc(label, .pred_0)
 
-nb_roc = roc_nb %>%
+nb_filter_auc <- roc_nb %>%
+  filter(abs(.threshold - thres_nb)<0.0001) %>%
+  dplyr::slice(1)
+
+nb_roc <- roc_nb %>%
   autoplot() +
   geom_point(
-    data = roc_nb %>% filter(abs(.threshold - 0.5)<0.0001) %>% slice(1),
+    data = nb_filter_auc,
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
+  ) +
+  labs(
+    subtitle = paste("AUC =", round(nb_auc$.estimate, 3))
   )
 
 ggsave(
-  "graphs/ROC_naivebayes.png",
+  "graphs/03_ROC_nb.png",
   nb_roc,
   width = 2.99 * 2,
   height = 3.82 * 2,

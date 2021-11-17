@@ -320,6 +320,154 @@ XGBoost: Tree_depth, min_n, loss_reduction, sample size mtry, learn rate are all
 
 Naive Bayes: We assume independence of predictors. 
 
-For selecting the ROC threshold, generally we have to consider the type of problem at hand and whether it is more costly to commit false positives or false negatives. That is, the problem entails cost function optimization (specifically minimization). After obtimizing cost, we are able to obtain a threshold and to derive the respective specificity and sensitivity. In this case, we will assume that the cost of a false negative (detecting no cloud when there is a cloud) and a false positive (detecting cloud when there is no cloud) as equally costly due to the fact that both errors, overestimating and underestimating clouds, lead to incorrectly predicting increases in temperature. We therefore find the point on the ROC that has the minimum Euclidean from the top left corner in the ROC curve (i.e. sensitivity = 1, 1-specificity = 0) and the associated threshold at that point. 
+For selecting the ROC threshold, generally we have to consider the type of problem at hand and whether it is more costly to commit false positives or false negatives. That is, the problem entails cost function optimization (specifically minimization). After obtimizing cost, we are able to obtain a threshold and to derive the respective specificity and sensitivity. In this case, we will assume that the cost of a false negative (detecting no cloud when there is a cloud) and a false positive (detecting cloud when there is no cloud) as equally costly due to the fact that both errors, overestimating and underestimating clouds, lead to incorrectly predicting increases in temperature. We therefore find the point on the ROC that has the minimum Euclidean from the top left corner in the ROC curve (i.e. sensitivity = 1, 1-specificity = 0) and the associated threshold at that point.
+
+# Diagnostics
+
+Building from the models used in section 3, we now do a deep dive into the XGBoost algorithm. We choose XGBoost because it performed well in the previous section, it has many tunable hyperparameters that are interesting to explore, and it has performed well in many online prediction competitions (@xgboostpaper). We work only with the testing and training data sets obtaiined with the block splits because, as we saw in section 3, the splitting method does not make a huge difference in model performance. First, let's do an overview of XGBoost and boosting in general. The overview presented here is mainly adapted from the original paper by @xgboostpaper.
+
+The idea behind tree boosting algorithms is to combine simple classification trees and create a final classifier taking into account all these weak classifiers. Boosting is known to prevent overfitting and produce overall better classification accuracy (@boostingintro). Different boosting algorithms differ in the way they incorporate the weak classifiers. For example, the first boosting algorithm called AdaBoost (short for Adaptive Boosting) by @adaboost, combines the classifiers and adaptively reweighs the data so misclassified points get more weight.
+
+XGBoost minimizes a regularized loss function, where the regularization term penalizes both the number of leaves in the tree and the vector of leaf weights. At each step, the algorithm uses a greedy approach to select the tree structure that yields a larger loss reduction. Furthermore, XGBoost incorporates a shrinkage term that scales the weights and reduces the influence of each individual tree. Just like random forests, XGBoost samples features at each split. According to @xgboostpaper, the shrinkage term and feature sampling help prevent overfitting.
+
+Implementation of XGBoost is attainable in R using the `xgboost` package by @xgboost. We now go over some of the tunable parameters in `xgboost`. Keep in mind that the argument names are not the same that are used when fitting XGBoost through the `tidymodels` interface.
+
++ Number of trees used in the ensemble (`nrounds`).
++ Number of randomly sampled features at each split (`colsample_bynode`).
++ Minimum number of observations for a node to be split further (`min_child_weight`).
++ Maximum depth of trees (`max_depth`).
++ Shrinkage term (`eta`).
++ Reduction in the loss function required to split further (`gamma`).
++ Proportion of the data that is exposed to the fitting routine at each iteration (`subsample`).
++ Iterations without improvement before stopping (`early_stop`).
+
+To choose the optimal parameters, we fix the number of trees at 1000, we specify no early stopping and use a grid search to optimize the rest. Our first attempt was with no early stopping and 1000 trees, we kept these two parameters because the cross-validation estimates showed no signs of overfitting.
+
+The final values for the parameters are shown in table \@ref(tab:xgparams). It is important to note that optimizing many parameters in a grid search results in sparse combinations tested when taking into account the multidimensional parameter space. To better select the grid, we use Latin Hypercube Sampling (@latinhyper) available through the `grid_latin_hypercube()` function in the `dials` R package (@dials).
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+Parameter & Value\\
+\hline
+\texttt{colsample\_bynode} & 2\\
+\texttt{min\_child\_weight} & 8\\
+\texttt{max\_depth} & 9\\
+\texttt{eta} & 0.0408\\
+\texttt{gamma} & 0.0191\\
+\texttt{subsample} & 0.944\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Optimal parameters for XGBoost.}
+\label{tab:xgparams}
+\end{table}
+
+We look at some diagnostics for the XGBoost fit. After settling on parameter values, we fit the model an all the training data set to obtain diagnostics. From an optimization point of view, we chose the negative log-likelihood as a loss function because it takes into account not just the class predictions, but also the probabilities for each class. Figure \@ref(fig:logloss) shows the change in the training loss as the number of trees increases. We also include the loss obtained in the testing data.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=10cm]{graphs/04_xg_loss.png} 
+    \caption{Log-likelihood loss for XGBoost.}
+    \label{fig:logloss}
+\end{figure}
+
+We can look at the feature importance in the model. As an importance measure we use gain, which is the improvement in accuracy brought by a feature to the branches it is on. Figure \@ref(fig:importance) shows the variable importance plot. We can see that the author-defined variables take the top three spots. As we anticipated in section 2, `ndai` is the most important feature. It is interesting to note that `corr` is second in importance, when the individual predictor method ranked it as the third least important variable. This supports the authors' feature engineering and highlights the relevance of domain knowledge in complicated classification tasks.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=10cm]{graphs/04_xg_importance.png} 
+    \caption{Feature importance plot for XGBoost.}
+    \label{fig:importance}
+\end{figure}
+
+To visualize the model complexity, we include two plots related to tree depth in figure \@ref(fig:complex). Figure \@ref(fig:leafdist) shows the distribution of the number of leafs according to depth level. We can see that the number of leafs grows exponentially with the depth. Figure \@ref(fig:avgobs) shows the distribution of the average weighted number of observations ending up in leafs at certain depths. We can see that the number grows greatly at the deepest level.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/04_xg_leafdist.png} 
+        \caption{Number of leafs at each depth level.} \label{fig:leafdist}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/04_xg_avgobs.png} 
+        \caption{Weighted observations at each depth level} \label{fig:avgobs}
+    \end{subfigure}
+    \caption{Visualization of XGBoost model complexity.}
+    \label{fig:complex}
+\end{figure}
+
+We can also plot the decision boundary using principal component analysis. To achieve this, first we calculate the principal components on the training data, create a dense grid in the plane spanned by the first two principal components, and project this grid back into the original space to obtain label predictions. The first two principal components explain 84.7% of the variance in the training data. This low-dimensional approximation of the decision boundary is shown in figure \@ref(fig:decision) and the probability threshold used is 0.5. We can see that the cloud prediction region is diagonal across the plane. It is important to keep in mind that this low-dimensional representation is not telling the whole story, the true decision boundary may look very different in the original feature space.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=10cm]{graphs/04_decision_boundary.png} 
+    \caption{Decision boundary in the (PC1, PC2) plane.}
+    \label{fig:decision}
+\end{figure}
+
+Let's take a look now at how the model performs on the test set. With the test set we can see how our model generalizes to previously unseen data, verifying that we are not overfitting the training data and obtaining performance estimates for when the model is put in production. This is crucial because our model may seem too complex at first, having a large number of trees and large tree depth.
+
+Fixing the threshold at 0.5, the confusion matrix in the test set is shown in table \@ref(tab:conf). The true labels are shown in the rows and the predicted labels in the columns. The overall accuracy is 95.7%, sensitivity is 96.0%, and specificity is 94.3%. This means that the model is making more mistakes when classifying cloudy pixels.
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+ & No Cloud & Cloud\\
+\hline
+No Cloud & 8,173 & 493\\
+No Cloud & 1,338 & 32,811\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Test set confusion matrix.}
+\label{tab:conf}
+\end{table}
+
+Figure \@ref(fig:testprobs) shows the cloud probability in the x-y plane. Comparing it to the true labels in section 1, we see that some pixels in the top left region have high cloud probability, when the true labels correspond to surface pixels. The second region that stands out is in the lower middle region, where we see a patch of low cloud probabilities. This figure is interesting because the probability map seems to reflect some of the textures that we expect to see in cloud satellite images, while the label maps are a lot smoother.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=5cm]{graphs/04_test_probs.png} 
+    \caption{Test cloud probabilities in the $(x,y)$ plane.}
+    \label{fig:testprobs}
+\end{figure}
+
+Finally, we can use our model to get predictions for the original unlabeled pixels. The cloud probability maps for each image are included in figure \@ref(fig:comppred). We would expect our model to have similar classification accuracy as in the test set, close to 95%.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/04_probimg1.png} 
+        \caption{Image 1.}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/04_probimg2.png} 
+        \caption{Image 2.}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{graphs/04_probimg3.png} 
+        \caption{Image 3.}
+    \end{subfigure}
+    \caption{Cloud probability maps for each image.}
+    \label{fig:comppred}
+\end{figure}
+
+# Concluding Remarks
+
+Overall, pixel classification for satellite images in polar regions is not an easy task. The similarities in surface and cloud pixels make traditional methods fail. In this project, we were able to create a very good classifier using boosted tree model, achieving high classification accuracy.
+
+The good model performance relies heavily on the feature engineering we had access to in the training data. The variables defined by @yu2008 encapsulate most of the spatial structure in the data and allow us to not use explicit spatial models for classification.
+
+We identify two main areas of opportunity for our classification model. First of all, we could consider reducing model complexity by reducing the number of trees or the maximimum tree depth in XGBoost. In this case, the high model complexity did not result in overfitting problems, but for other applications this may not be the case. Overall, we could see that XGBoost has effective ways to control complexity, avoid overfitting, and produce excelent classification models.
+
+The second area of opportunity we identify is that we can take advantage of the spatial structure in the data to produce even better predictions. One way we could do this is by applying smoothing filters via k-nearest neighbors or other spatial methods to get more homogeneous predictions for nearby pixels. In our application we think that this extra step is not essential because clouds are not necessarily smooth objects, specially when seen at a high spatial resolution, but other applications or image resolutions may benefit more from the smoothing step.
 
 # Bibliography
