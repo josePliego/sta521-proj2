@@ -306,20 +306,19 @@ For the modeling, we use the block splits created in section 2 as test and train
 
 In terms of binary classifiers, we decided to fit logistic regression, LDA, QDA, SVM, XGBoost and Naive Bayes. For each classifier, we do 9-fold cross validation in the two separate scenarios, data split using block or k-means. We choose to use 9 folds as it falls in between the standard 5 and 10. We found it to be rational to go smaller than the initial split (testing/training/validation) of 6 as we are using all 9 of the segments for testing. We did not want to go too small on the blocks as we would get blocks with only cloud or no clouds at all.
 
-$\underline{Assumptions}:$
+$\underline{\bf{Assumptions}}:$
 
 Logistic Regression: 
 
 LDA: Estimates a multivariate distribution for the predictors separately for the data in each class (Gaussian with common covariance matrix). Bayes' theorem is used to compute the probability of each class, given the predictor values.
 
-
 QDA:  Estimates a multivariate distribution for the predictors separately for the data in each class (Gaussian with separate covariance matrices). Bayes' theorem is used to compute the probability of each class, given the predictor values.
 
-SVM:
+SVM: 
 
 XGBoost:
 
-Naive Bayes: We assume independance of predictors
+Naive Bayes: We assume independence of predictors. 
 
 
 # Bibliography
