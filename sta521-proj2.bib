@@ -1,35 +1,76 @@
 %% This BibTeX bibliography file was created using BibDesk.
 %% https://bibdesk.sourceforge.io/
 
-%% Created for Jose Pliego at 2021-11-13 14:52:23 -0500
+%% Created for Jose Pliego at 2021-11-16 19:51:59 -0500
 
 
 %% Saved with string encoding Unicode (UTF-8)
 
-@Manual{tidymodels,
-    title = {Tidymodels: a collection of packages for modeling and machine learning using tidyverse principles.},
-    author = {Max Kuhn and Hadley Wickham},
-    url = {https://www.tidymodels.org},
-    year = {2020},
-  }
 
-@Manual{rsample,
-    title = {rsample: General Resampling Infrastructure},
-    author = {Julia Silge and Fanny Chow and Max Kuhn and Hadley Wickham},
-    year = {2021},
-    note = {R package version 0.1.1},
-    url = {https://CRAN.R-project.org/package=rsample},
-  }
+@inproceedings{adaboost,
+	abstract = {We consider the problem of dynamically apportioning resources among a set of options in a worst-case on-line framework. The model we study can be interpreted as a broad, abstract extension of the well-studied on-line prediction model to a general decision-theoretic setting. We show that the multiplicative weight-update rule of Littlestone and Warmuth [10] can be adapted to this mode yielding bounds that are slightly weaker in some cases, but applicable to a considerably more general class of learning problems. We show how the resulting learning algorithm can be applied to a variety of problems, including gambling, multiple-outcome prediction, repeated games and prediction of points in ℝn. We also show how the weight-update rule can be used to derive a new boosting algorithm which does not require prior knowledge about the performance of the weak learning algorithm.},
+	address = {Berlin, Heidelberg},
+	author = {Freund, Yoav and Schapire, Robert E.},
+	booktitle = {Computational Learning Theory},
+	editor = {Vit{\'a}nyi, Paul},
+	isbn = {978-3-540-49195-8},
+	pages = {23--37},
+	publisher = {Springer Berlin Heidelberg},
+	title = {A desicion-theoretic generalization of on-line learning and an application to boosting},
+	year = {1995}}
 
-@INPROCEEDINGS{sperrorest,
-  author={Brenning, Alexander},
-  booktitle={2012 IEEE International Geoscience and Remote Sensing Symposium},
-  title={Spatial cross-validation and bootstrap for the assessment of prediction rules in remote sensing: The R package sperrorest},
-  year={2012},
-  volume={},
-  number={},
-  pages={5372-5375},
-  doi={10.1109/IGARSS.2012.6352393}}
+
+@INPROCEEDINGS{boostingintro,
+    author = {Yoav Freund and Robert E. Schapire},
+    title = {A Short Introduction to Boosting},
+    booktitle = {In Proceedings of the Sixteenth International Joint Conference on Artificial Intelligence},
+    year = {1999},
+    pages = {1401--1406},
+    publisher = {Morgan Kaufmann}
+}
+
+@article{xgboostpaper,
+	author = {Chen, Tianqi and Guestrin, Carlos},
+	doi = {10.1145/2939672.2939785},
+	journal = {Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+	month = {Aug},
+	publisher = {ACM},
+	title = {XGBoost},
+	url = {http://dx.doi.org/10.1145/2939672.2939785},
+	year = {2016},
+	bdsk-url-1 = {http://dx.doi.org/10.1145/2939672.2939785}}
+
+@manual{xgboost,
+	author = {Tianqi Chen and Tong He and Michael Benesty and Vadim Khotilovich and Yuan Tang and Hyunsu Cho and Kailong Chen and Rory Mitchell and Ignacio Cano and Tianyi Zhou and Mu Li and Junyuan Xie and Min Lin and Yifeng Geng and Yutian Li},
+	note = {R package version 1.5.0.1},
+	title = {xgboost: Extreme Gradient Boosting},
+	url = {https://CRAN.R-project.org/package=xgboost},
+	year = {2021},
+	bdsk-url-1 = {https://CRAN.R-project.org/package=xgboost}}
+
+@manual{tidymodels,
+	author = {Max Kuhn and Hadley Wickham},
+	title = {Tidymodels: a collection of packages for modeling and machine learning using tidyverse principles.},
+	url = {https://www.tidymodels.org},
+	year = {2020},
+	bdsk-url-1 = {https://www.tidymodels.org}}
+
+@manual{rsample,
+	author = {Julia Silge and Fanny Chow and Max Kuhn and Hadley Wickham},
+	note = {R package version 0.1.1},
+	title = {rsample: General Resampling Infrastructure},
+	url = {https://CRAN.R-project.org/package=rsample},
+	year = {2021},
+	bdsk-url-1 = {https://CRAN.R-project.org/package=rsample}}
+
+@inproceedings{sperrorest,
+	author = {Brenning, Alexander},
+	booktitle = {2012 IEEE International Geoscience and Remote Sensing Symposium},
+	doi = {10.1109/IGARSS.2012.6352393},
+	pages = {5372-5375},
+	title = {Spatial cross-validation and bootstrap for the assessment of prediction rules in remote sensing: The R package sperrorest},
+	year = {2012},
+	bdsk-url-1 = {https://doi.org/10.1109/IGARSS.2012.6352393}}
 
 @article{blockcv,
 	author = {Roozbeh Valavi and Jane Elith and Jos{\'e} J. Lahoz-Monfort and Gurutzeta Guillera-Arroita},
