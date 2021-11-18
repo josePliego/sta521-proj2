@@ -49,6 +49,8 @@ summaryblock_logreg <- cvblock_logreg %>%
     method = "Block"
     )
 
+write_rds(summaryblock_logreg, "data/03_logreg_cvblock.rds")
+
 cvkmeans_logreg <- CVmaster(
   dt_train_logreg,
   mod_logreg,
@@ -63,28 +65,7 @@ summarykmeans_logreg <- cvkmeans_logreg %>%
     method = "k-means"
   )
 
-
-
-# Logistic Regression PCA
-# 6 PCAs perform similar to the 8 predictors
-# We do a deep dive of PCA in section 4
-
-# rec_pca_logreg <- rec_logreg %>%
-#   step_pca(all_predictors(), num_comp = 6)
-
-# cv_pca_logreg <- CVmaster(
-#   dt_train_logreg,
-#   mod_logreg,
-#   rec_pca_logreg,
-#   .method = "block",
-#   .columns = 3,
-#   .rows = 3
-# )
-
-# cv_pca_logreg
-
-# cv_pca_logreg %>%
-#   summarise(across(.estimate, mean))
+write_rds(summarykmeans_logreg, "data/03_logreg_cvkmeans.rds")
 
 
 # 2. LDA ------------------------------------------------------------------
@@ -114,6 +95,8 @@ cvblock_lda <- CVmaster(
 summaryblock_lda <- cvblock_lda %>%
   mutate(model = "LDA", method = "Block")
 
+write_rds(summaryblock_lda, "data/03_lda_cvblock.rds")
+
 cvkmeans_lda <- CVmaster(
   dt_train_lda,
   mod_lda,
@@ -125,31 +108,7 @@ cvkmeans_lda <- CVmaster(
 summarykmeans_lda <- cvkmeans_lda %>%
   mutate(model = "LDA", method = "K-means")
 
-# PCA LDA
-
-# rec_pca_lda <- rec_lda %>%
-#   step_pca(all_predictors(), num_comp = 8)
-#
-# rec_pca_lda %>%
-#   prep() %>%
-#   juice() %>%
-#   pivot_longer(cols = -label) %>%
-#   ggplot(aes(x = value, fill = label)) +
-#   geom_density() +
-#   facet_wrap(~name, scales = "free")
-#
-# cv_pca_lda <- CVmaster(
-#   dt_train_lda,
-#   mod_lda,
-#   rec_pca_lda,
-#   .method = "kmeans",
-#   .k = 10
-# )
-#
-# cv_pca_lda
-#
-# cv_pca_lda %>%
-#   summarise(across(.estimate, mean))
+write_rds(summarykmeans_lda, "data/03_lda_cvkmeans.rds")
 
 
 # 3. QDA ------------------------------------------------------------------
@@ -180,6 +139,8 @@ cvblock_qda <- CVmaster(
 summaryblock_qda = cvblock_qda %>%
   mutate(model = "QDA", method = "Block")
 
+write_rds(summaryblock_qda, "data/03_qda_cvblock.rds")
+
 cvkmeans_qda <- CVmaster(
   dt_train_qda,
   mod_qda,
@@ -191,31 +152,7 @@ cvkmeans_qda <- CVmaster(
 summarykmeans_qda = cvkmeans_qda %>%
   mutate(model = "QDA", method = "K-means")
 
-#PCA QDA
-
-# rec_pca_qda <- rec_qda %>%
-#   step_pca(all_predictors(), num_comp = 8)
-#
-# rec_pca_qda %>%
-#   prep() %>%
-#   juice() %>%
-#   pivot_longer(cols = -label) %>%
-#   ggplot(aes(x = value, fill = label)) +
-#   geom_density() +
-#   facet_wrap(~name, scales = "free")
-#
-# cv_pca_qda <- CVmaster(
-#   dt_train_qda,
-#   mod_qda,
-#   rec_pca_qda,
-#   .method = "kmeans",
-#   .k = 10
-# )
-#
-# cv_pca_qda
-#
-# cv_pca_qda %>%
-#   summarise(across(.estimate, mean))
+write_rds(summarykmeans_qda, "data/03_qda_cvkmeans.rds")
 
 # 4. SVM ------------------------------------------------------------------
 
@@ -471,16 +408,30 @@ cvblock_nb <- CVmaster(
 summaryblock_nb = cvblock_nb %>%
   mutate(model = "Naive Bayes", method = "Block")
 
+write_rds(summaryblock_nb, "data/03_naiveb_cvblock.rds")
 
 cvkmeans_nb <- CVmaster(
   dt_train_svm,
   mod_svm,
   rec_svm,
-  .method = "K-means",
+  .method = "kmeans",
   .k = 9
 )
 
 summarykmeans_nb = cvkmeans_nb %>%
   mutate(model = "Naive Bayes", method = "K-means")
+
+write_rds(summarykmeans_nb, "data/03_naiveb_cvkmeans.rds")
+
+summarykmeans_xgboost = readRDS("data/03_xg_cvkmeans.rds")
+
+summarykmeans_xgboost = summarykmeans_xgboost %>%
+  mutate(model = "XGBoost", method = "K-means")
+
+summaryblock_xgboost = readRDS("data/03_xg_cvblock.rds")
+
+summaryblock_xgboost = summaryblock_xgboost %>%
+  mutate(model = "XGBoost", method = "Block")
+
 
 
