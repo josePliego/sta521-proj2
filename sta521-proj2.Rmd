@@ -1,8 +1,8 @@
 ---
 title: "Project 2 - XGBooster Shot"
 author:
-- Johnny Antoun (0679537)
-- Jose Pliego (2716768)
+- Johnny Antoun (johnny.antoun@duke.edu)
+- Jose Pliego (jose.pliego.san.martin@duke.edu)
 date: "November 2021"
 output:
   bookdown::pdf_document2:
@@ -12,10 +12,12 @@ header-includes:
 - \usepackage{caption}
 - \usepackage{float}
 - \usepackage{subcaption}
+- \usepackage{microtype}
 - \floatplacement{figure}{H}
+geometry: margin = 0.2in
 ---
 
-\fontsize{10}{12}
+\fontsize{11}{12}
 \fontseries{m}
 \selectfont
 
@@ -88,15 +90,13 @@ We can plot labels in the $(x,y)$ plane to visualize them. In figure \@ref(fig:l
 
 Figure \@ref(fig:labs) shows strong spatial dependence present in the images. Cloudy pixels are generally surrounded by cloudy pixels, and the same pattern repeats for surface/non-cloudy pixels. This presents a challenge for pixel classification because we cannot treat the different pixels as independent and identically distributed. We must account for the spatial dependence in our classification models so they can generalize well to future unobserved images.
 
-\newpage
-
 ## Exploratory Data Analysis
 
 To get a sense of how the predictors are related between them and with the labels, we include a correlation plot of the relevant variables in figure \@ref(fig:corrplot). The label column is encoded as 1 if the pixel is a cloud and -1 if it is not, so a positive correlation between label and a predictor can be roughly interpreted as an increase in the predictor being associated with an increase in "cloudiness". For this figure, we remove the unlabeled pixels to retain the numerical interpretation of the labels and the correlation with the predictors.
 
 \begin{figure}
     \centering
-    \includegraphics[width=8cm]{graphs/01_corrplot.png} 
+    \includegraphics[width=6cm]{graphs/01_corrplot.png} 
     \caption{Visual representation of Pearson's correlation matrix.}
     \label{fig:corrplot}
 \end{figure}
@@ -107,7 +107,7 @@ To take a closer look at some of these relationships, figure \@ref(fig:labdensit
 
 \begin{figure}
     \centering
-    \includegraphics[width=13cm]{graphs/01_lab_densities.png} 
+    \includegraphics[width=10cm]{graphs/01_lab_densities.png} 
     \caption{Distribution of author-defined variables and nadir radiance (rad\_an) across pixel labels (median values highlighted).}
     \label{fig:labdensities}
 \end{figure}
@@ -136,19 +136,23 @@ We include two scatterplots between the predictors that convey interesting prope
 
 To conclude the exploratory data analysis, we use Principal Component Analysis to reconstruct the three images using information from all the predictors. Since the principal components do not use label information, we obtain the scores and loadings using all the pixels. In figure \@ref(fig:labspc) we can see the first principal component scores plotted in space. Note that the first principal component shows spatial dependence between neighboring pixels. This detail is interesting because the $(x, y)$ coordinates were not used to calculate the principal components, so it supports the authors' claim that some features convey implicit spatial structure when defined using local patches of pixels.
 
+The first two principal components account for 80.7% of the variance in the dataset. Using the principal components as predictors instead of the original features may be useful in the modeling stage. As we saw in this analysis, some of the original predictors are highly correlated and using a set of orthogonal predictors (principal components) may yield better model results.
+
+Finally, to support the claim that the principal components contain some of the spatial structure present in the data, we calculate the median and interquartile range (IQR) of the first two principal components by label. We choose IQR as a measure of spread and the median as representing the center because the distributions are not symmetric or unimodal.
+
 \begin{figure}
     \centering
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.27\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/01_pcimg1.png} 
         \caption{PC1 representation for image 1.} \label{fig:labspcimg1}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.27\textwidth}
         \centering
        \includegraphics[width=\linewidth]{graphs/01_pcimg2.png} 
         \caption{PC1 representation for image 2.} \label{fig:labspcimg2}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.27\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/01_pcimg3.png} 
         \caption{PC1 representation for image 3.} \label{fig:labspcimg3}
@@ -156,10 +160,6 @@ To conclude the exploratory data analysis, we use Principal Component Analysis t
     \caption{First principal component scores plotted in the $(x,y)$ plane.}
     \label{fig:labspc}
 \end{figure}
-
-The first two principal components account for 80.7% of the variance in the dataset. Using the principal components as predictors instead of the original features may be useful in the modeling stage. As we saw in this analysis, some of the original predictors are highly correlated and using a set of orthogonal predictors (principal components) may yield better model results.
-
-Finally, to support the claim that the principal components contain some of the spatial structure present in the data, we calculate the median and interquartile range (IQR) of the first two principal components by label. We choose IQR as a measure of spread and the median as representing the center because the distributions are not symmetric or unimodal.
 
 \begin{table}[H]
 \begin{center}
@@ -180,8 +180,6 @@ Cloud & PC2 & 0.98 & 2.12\\
 
 In table \@ref(tab:sumpc) we see that the first two principal components have more spread in cloudy pixels, and the medians are different for both types of labels. This suggests that principal components may be useful in classification models. In section 3 we formalize these claims and assess model performance.
 
-\newpage
-
 # Preparation
 ## Data Split
 
@@ -198,13 +196,13 @@ Following the same reasoning as in the block splits, we choose to split each ima
 \begin{figure}
     \centering
     \hspace*{\fill}
-    \begin{subfigure}[t]{0.35\textwidth}
+    \begin{subfigure}[t]{0.28\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/02_blocksimg3.png} 
         \caption{Block splits for image 3.} \label{fig:block}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[t]{0.35\textwidth}
+    \begin{subfigure}[t]{0.28\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/02_kmeansimg3.png} 
         \caption{K-means splits for image 3.} \label{fig:kmeans}
@@ -221,7 +219,8 @@ Figure \@ref(fig:splits) shows a visual representation of the clustering and blo
 We report the accuracy of a trivial classifier that predicts every pixel as non-cloudy on the test and validation sets, using both splitting methods mentioned before. This trivial classifier serves as a baseline comparison for the classification models used in section 3. The accuracies are shown in table \@ref(tab:baseline).
 
 \begin{table}[H]
-\begin{center}
+\parbox{.45\linewidth}{
+\centering
 \begin{tabular}{|c|c|c|c|c|}
 \hline
 Splitting Method & Set & Accuracy\\
@@ -232,20 +231,10 @@ K-means & Validation & 81.8\%\\
 K-means & Test & 86.3\%\\
 \hline
 \end{tabular}
-\end{center}
 \caption{Accuracy of a trivial classifier.}
 \label{tab:baseline}
-\end{table}
-
-We can see that the trivial classifier performance is greatly dependent on the set used to evaluate. Trivial classifiers perform well when the data is unbalanced, in this context when a set is composed of mostly non-cloudy pixels. In table \@ref(tab:baseline) we see that the validation sets for both splits, as well as the test set obtained with k-means, consist of mostly non-cloudy pixels so the classifier has relatively high accuracy. However, the accuracy is still far from 100% so the hope is that a well designed classification model will outperform the trivial classifier. We also see that our splitting methods work well since we manage to capture different pixel behaviors in each set.
-
-## Feature selection
-
-To formalize the selection of "best features" mentioned in section 1, we fit single-predictor models using each of the predictors and assess this models' performance. We fit a logistic regression on each training set (block and cluster splits), calculate the area under the curve (AUC) of the ROC Curve in the validation sets, and average this values to rank the predictors. We choose AUC as a selection criterion because this metric takes into account all possible probability threshold cutoffs, and we choose logistic regression as an initial model because this model returns a coefficient for the predictor and we can relate the probability of a pixel being cloudy or not with a higher or lower value of each predictor.
-
-The results are shown in table \@ref(tab:aucsingle). We can see that \texttt{ndai} is the clear winner, followed by \texttt{sd}, both of which are author-defined predictors. Going back to figure \@ref(fig:labdensities), we expected \texttt{ndai} to perform well because the distributions between the two classes were well separated.
-
-\begin{table}[H]
+}
+\parbox{.45\linewidth}{
 \centering
 \begin{tabular}{|lccc|}
   \hline
@@ -263,23 +252,32 @@ The results are shown in table \@ref(tab:aucsingle). We can see that \texttt{nda
 \end{tabular}
 \caption{Single-predictor model performance.}
 \label{tab:aucsingle}
+}
 \end{table}
+
+We can see that the trivial classifier performance is greatly dependent on the set used to evaluate. Trivial classifiers perform well when the data is unbalanced, in this context when a set is composed of mostly non-cloudy pixels. In table \@ref(tab:baseline) we see that the validation sets for both splits, as well as the test set obtained with k-means, consist of mostly non-cloudy pixels so the classifier has relatively high accuracy. However, the accuracy is still far from 100% so the hope is that a well designed classification model will outperform the trivial classifier. We also see that our splitting methods work well since we manage to capture different pixel behaviors in each set.
+
+## Feature selection
+
+To formalize the selection of "best features" mentioned in section 1, we fit single-predictor models using each of the predictors and assess this models' performance. We fit a logistic regression on each training set (block and cluster splits), calculate the area under the curve (AUC) of the ROC Curve in the validation sets, and average this values to rank the predictors. We choose AUC as a selection criterion because this metric takes into account all possible probability threshold cutoffs, and we choose logistic regression as an initial model because this model returns a coefficient for the predictor and we can relate the probability of a pixel being cloudy or not with a higher or lower value of each predictor.
+
+The results are shown in table \@ref(tab:aucsingle). We can see that \texttt{ndai} is the clear winner, followed by \texttt{sd}, both of which are author-defined predictors. Going back to figure \@ref(fig:labdensities), we expected \texttt{ndai} to perform well because the distributions between the two classes were well separated.
 
 As a visual assessment, we show the values of \texttt{ndai} plotted in space for the three original images. In figure \@ref(fig:ndai) we see what figure \@ref(fig:labdensities) suggested, that higher values of \texttt{ndai} are associated with cloudy pixels. This is further supported by the logistic regression model having a positive coefficient $\hat{\beta}_{ndai} = 2.008$.
 
 \begin{figure}
     \centering
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/02_ndaiimg1.png} 
         \caption{Image 1.} \label{fig:ndaiimg1}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
        \includegraphics[width=\linewidth]{graphs/02_ndaiimg2.png} 
         \caption{Image 2.} \label{fig:ndaiimg2}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/02_ndaiimg3.png} 
         \caption{Image 3.} \label{fig:ndaiimg3}
@@ -302,11 +300,51 @@ For the modeling, we use the block splits created in section 2 as test and train
 
 In terms of binary classifiers, we decided to fit logistic regression, LDA, QDA, SVM, XGBoost and Naive Bayes. For each classifier, we do 9-fold cross validation in the two separate scenarios, data split using block or k-means. We choose to use 9 folds as it falls in between the standard 5 and 10. We found it to be rational to go smaller than the initial split (testing/training/validation) of 6 as we are using all 9 of the segments for testing. We did not want to go too small on the blocks as we would get blocks with only cloud or no clouds at all.
 
+<!-- \begin{table}[ht] -->
+<!-- \centering -->
+<!-- \begin{tabular}{|ccccccc|} -->
+<!--   \hline -->
+<!--  & Log.Reg. & LDA & QDA & N.Bayes & SVM & XGBoost \\  -->
+<!--   \hline -->
+<!-- & 0.68 & 0.68 & 0.65 & 0.74 & 0.71 & 0.74 \\  -->
+<!--   & 0.77 & 0.77 & 0.84 & 0.65 & 0.65 & 0.73 \\  -->
+<!--   & 0.71 & 0.68 & 0.79 & 0.54 & 0.65 & 0.71 \\  -->
+<!--   & 0.87 & 0.87 & 0.82 & 0.88 & 0.93 & 0.91 \\  -->
+<!--   & 0.89 & 0.90 & 0.96 & 0.91 & 0.94 & 0.93 \\  -->
+<!--   & 0.86 & 0.87 & 0.84 & 0.98 & 0.98 & 0.97 \\  -->
+<!--   & 0.94 & 0.93 & 0.99 & 0.99 & 0.91 & 0.90 \\  -->
+<!--   & 0.76 & 0.78 & 0.80 & 0.87 & 0.92 & 0.93 \\  -->
+<!--   & 0.83 & 0.84 & 0.86 & 0.91 & 0.97 & 0.97 \\  -->
+<!--   \hline -->
+<!--   Average & 0.81 & 0.81 & 0.84 & 0.83 & 0.85 & 0.87 \\  -->
+<!--    \hline -->
+<!-- \end{tabular} -->
+<!-- \caption{Classification CV Errors for Block Splits.} -->
+<!-- \end{table} -->
+
 \begin{table}[ht]
 \centering
-\begin{tabular}{r|rrrrrr}
+\begin{tabular}{|ccccccc|}
   \hline
- & Logistic Regression & LDA & QDA & Naive Bayes & SVM & XGBoost \\ 
+ & Log.Reg. & LDA & QDA & N.Bayes & SVM & XGBoost \\ 
+  \hline
+& 0.61 & 0.88 & 0.99 & 0.87 & 0.80 & 0.99 \\ 
+   & 0.86 & 0.89 & 0.60 & 0.70 & 0.88 & 0.83 \\ 
+  & 0.89 & 0.72 & 0.80 & 0.90 & 0.67 & 1.00 \\ 
+  & 0.77 & 0.63 & 0.61 & 0.99 & 0.99 & 0.96 \\ 
+  & 0.95 & 0.74 & 0.95 & 0.80 & 0.81 & 0.77 \\ 
+  & 0.35 & 0.99 & 0.98 & 0.75 & 0.99 & 0.91 \\ 
+  & 0.98 & 0.99 & 0.87 & 0.96 & 0.72 & 0.71 \\ 
+  & 0.93 & 0.46 & 0.84 & 0.96 & 0.96 & 0.96 \\ 
+  & 0.75 & 0.91 & 1.00 & 0.68 & 0.59 & 0.75  \\ 
+  \hline
+  Average & 0.79 & 0.80 & 0.85 & 0.85 & 0.82 & 0.88 \\ 
+   \hline
+\end{tabular}
+\caption{Classification CV Errors for K-means Splits.}
+\begin{tabular}{|ccccccc|}
+  \hline
+ & Log.Reg. & LDA & QDA & N.Bayes & SVM & XGBoost \\ 
   \hline
 & 0.68 & 0.68 & 0.65 & 0.74 & 0.71 & 0.74 \\ 
   & 0.77 & 0.77 & 0.84 & 0.65 & 0.65 & 0.73 \\ 
@@ -318,56 +356,58 @@ In terms of binary classifiers, we decided to fit logistic regression, LDA, QDA,
   & 0.76 & 0.78 & 0.80 & 0.87 & 0.92 & 0.93 \\ 
   & 0.83 & 0.84 & 0.86 & 0.91 & 0.97 & 0.97 \\ 
   \hline
-  average & 0.81 & 0.81 & 0.84 & 0.83 & 0.85 & 0.87 \\ 
+  Average & 0.81 & 0.81 & 0.84 & 0.83 & 0.85 & 0.87 \\ 
    \hline
 \end{tabular}
 \caption{Classification CV Errors for Block Splits.}
 \end{table}
 
+We now discuss the assumptions for the different methods and whether our problem satisfies them or not.
 
+\textbf{Logistic Regression} assumes $y_i | x_i \sim Bernoulli(e^{x_i\top\beta}/(1+e^{x_i\top\beta}))$, where the $y_i$'s are conditionally independent given the predictors. In our case, we know that the response has spatial dependence, so the assumptions are not satisfied.
+
+\textbf{Linear Discriminant Analysis} assumes that the predictors follow a normal distribution within each class. The covariance matrix is the same in all classes. Bayes' theorem is used to compute the probability of each class, given the predictor values. In our case, given the distributions seen in section 1, the normality assumption with constant variance is not satisfied.
+
+\textbf{Quadratic Discriminant Analysis} assumes that the predictors follow a normal distribution within each class. The covariance matrix is different in each class. Bayes' theorem is used to compute the probability of each class, given the predictor values. In our case, given the distributions seen in section 1, the normality assumption is not satisfied.
+
+\textbf{Naive Bayes} models $p(y|x)$ directly and assumes that the predictors are conditionally independent given the class. In our case, we saw that the predictors are greatly correlated and the assumptions are not satisfied.
+
+\textbf{Radial Basis SVM and XGBoost} follow no distributional assumptions, they are both framed as pure optimization problems. We used a grid search approach for hyperparameter tuning (see section 4).
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{r|rrrrrr}
+\begin{tabular}{|cc|}
   \hline
- & Logistic Regression & LDA & QDA & Naive Bayes & SVM & XGBoost \\ 
-  \hline
-& 0.61 & 0.88 & 0.99 & 0.87 & 0.80 & 0.99 \\ 
-   & 0.86 & 0.89 & 0.60 & 0.70 & 0.88 & 0.83 \\ 
-  & 0.89 & 0.72 & 0.80 & 0.90 & 0.67 & 1.00 \\ 
-  & 0.77 & 0.63 & 0.61 & 0.99 & 0.99 & 0.96 \\ 
-  & 0.95 & 0.74 & 0.95 & 0.80 & 0.81 & 0.77 \\ 
-  & 0.35 & 0.99 & 0.98 & 0.75 & 0.99 & 0.91 \\ 
-  & 0.98 & 0.99 & 0.87 & 0.96 & 0.72 & 0.71 \\ 
-  & 0.93 & 0.46 & 0.84 & 0.96 & 0.96 & 0.96 \\ 
-  & 0.75 & 0.91 & 1.00 & 0.68 & 0.59 & .75  \\ 
-  \hline
-  average & 0.79 & 0.80 & 0.85 & 0.85 & 0.82 & 0.88 \\ 
-   \hline
+Model & Test Accuracy\\ 
+\hline
+Trivial Classifier & 0.797\\
+Logistic Regression & 0.958\\
+LDA & 0.974\\
+QDA & 0.985\\
+SVM & 0.958\\
+XGBoost & 0.957\\
+Naive Bayes & 0.985\\
+\hline
 \end{tabular}
-\caption{Classification CV Errors for K-means Splits.}
+\caption{Test accuracies.}
 \end{table}
 
+## ROC Curves
 
-$\underline{\bf{Assumptions}}:$
+To further compare the different models, we use the ROC curves. To get the curves, we first fit every model using the entire training set. Figure \@ref(fig:roc) shows the ROC curves for the different methods with one probability threshold highlighted.
 
-Logistic Regression: 
+\begin{figure}
+    \centering
+    \includegraphics[width=8cm]{graphs/03_roc_plots.png} 
+    \caption{ROC Curves for different classification methods.}
+    \label{fig:roc}
+\end{figure}
 
-LDA: Estimates a multivariate distribution for the predictors separately for the data in each class (Gaussian with common covariance matrix). Bayes' theorem is used to compute the probability of each class, given the predictor values.
-
-QDA:  Estimates a multivariate distribution for the predictors separately for the data in each class (Gaussian with separate covariance matrices). Bayes' theorem is used to compute the probability of each class, given the predictor values.
-
-SVM: Cost and Sigma parameters are tuned using grid.
-
-XGBoost: Tree_depth, min_n, loss_reduction, sample size mtry, learn rate are all tuned using grid.
-
-Naive Bayes: We assume independence of predictors. 
-
-For selecting the ROC threshold, generally we have to consider the type of problem at hand and whether it is more costly to commit false positives or false negatives. That is, the problem entails cost function optimization (specifically minimization). After obtimizing cost, we are able to obtain a threshold and to derive the respective specificity and sensitivity. In this case, we will assume that the cost of a false negative (detecting no cloud when there is a cloud) and a false positive (detecting cloud when there is no cloud) as equally costly due to the fact that both errors, overestimating and underestimating clouds, lead to incorrectly predicting increases in temperature. We therefore find the point on the ROC that has the minimum Euclidean from the top left corner in the ROC curve (i.e. sensitivity = 1, 1-specificity = 0) and the associated threshold at that point.
+To select a probability cutoff, generally we have to consider the type of problem at hand and whether it is more costly to commit false positives or false negatives. That is, the problem entails cost function optimization (specifically minimization). After optimizing costs, we are able to obtain a threshold and derive the respective specificity and sensitivity. In this case, we will assume the cost of a false negative (detecting no cloud when there is a cloud) and a false positive (detecting cloud when there is no cloud) as equally costly due to the fact that both errors, overestimating and underestimating clouds, lead to incorrectly predicting increases in temperature. We therefore highlight the point on the ROC curve that has the minimum Euclidean distance from the top left corner in the ROC curve (i.e. sensitivity = 1, 1-specificity = 0). Selecting a point in the ROC curve implies the selection of a probability cutoff in the classification model.
 
 # Diagnostics
 
-Building from the models used in section 3, we now do a deep dive into the XGBoost algorithm. We choose XGBoost because it performed well in the previous section, it has many tunable hyperparameters that are interesting to explore, and it has performed well in many online prediction competitions (@xgboostpaper). We work only with the testing and training data sets obtaiined with the block splits because, as we saw in section 3, the splitting method does not make a huge difference in model performance. First, let's do an overview of XGBoost and boosting in general. The overview presented here is mainly adapted from the original paper by @xgboostpaper.
+Building from the models used in section 3, we now do a deep dive into the XGBoost algorithm. We choose XGBoost because it performed well in the previous section, achieving the gratest area under the ROC curve, it has many tunable hyperparameters that are interesting to explore, and it has performed well in many online prediction competitions (@xgboostpaper). We work only with the testing and training data sets obtained with the block splits because, as we saw in section 3, the splitting method does not make a huge difference in model performance. First, let's do an overview of XGBoost and boosting in general. The overview presented here is mainly adapted from the original paper by @xgboostpaper.
 
 The idea behind tree boosting algorithms is to combine simple classification trees and create a final classifier taking into account all these weak classifiers. Boosting is known to prevent overfitting and produce overall better classification accuracy (@boostingintro). Different boosting algorithms differ in the way they incorporate the weak classifiers. For example, the first boosting algorithm called AdaBoost (short for Adaptive Boosting) by @adaboost, combines the classifiers and adaptively reweighs the data so misclassified points get more weight.
 
@@ -447,7 +487,7 @@ We can also plot the decision boundary using principal component analysis. To ac
 
 \begin{figure}
     \centering
-    \includegraphics[width=10cm]{graphs/04_decision_boundary.png} 
+    \includegraphics[width=7cm]{graphs/04_decision_boundary.png} 
     \caption{Decision boundary in the (PC1, PC2) plane.}
     \label{fig:decision}
 \end{figure}
@@ -484,17 +524,17 @@ Finally, we can use our model to get predictions for the original unlabeled pixe
 
 \begin{figure}
     \centering
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/04_probimg1.png} 
         \caption{Image 1.}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/04_probimg2.png} 
         \caption{Image 2.}
     \end{subfigure}
-    \begin{subfigure}[t]{0.32\textwidth}
+    \begin{subfigure}[t]{0.22\textwidth}
         \centering
         \includegraphics[width=\linewidth]{graphs/04_probimg3.png} 
         \caption{Image 3.}
@@ -503,7 +543,7 @@ Finally, we can use our model to get predictions for the original unlabeled pixe
     \label{fig:comppred}
 \end{figure}
 
-# Concluding Remarks
+## Concluding Remarks
 
 Overall, pixel classification for satellite images in polar regions is not an easy task. The similarities in surface and cloud pixels make traditional methods fail. In this project, we were able to create a very good classifier using boosted tree model, achieving high classification accuracy.
 
@@ -512,5 +552,15 @@ The good model performance relies heavily on the feature engineering we had acce
 We identify two main areas of opportunity for our classification model. First of all, we could consider reducing model complexity by reducing the number of trees or the maximimum tree depth in XGBoost. In this case, the high model complexity did not result in overfitting problems, but for other applications this may not be the case. Overall, we could see that XGBoost has effective ways to control complexity, avoid overfitting, and produce excelent classification models.
 
 The second area of opportunity we identify is that we can take advantage of the spatial structure in the data to produce even better predictions. One way we could do this is by applying smoothing filters via k-nearest neighbors or other spatial methods to get more homogeneous predictions for nearby pixels. In our application we think that this extra step is not essential because clouds are not necessarily smooth objects, specially when seen at a high spatial resolution, but other applications or image resolutions may benefit more from the smoothing step.
+
+# Reproducibility
+
+This document is knitted inside an R project. In the project, the folder R/ contains all the code required to reproduce the graphs and tables. The scripts in R/ are ordered according to the section and specific order within each section. Refer to the README for more details.
+
+# Acknowledgements
+
+The project was developed jointly by Johnny Antoun and Jose Pliego. Many resources were consulted before and during the project execution. The way we decided to tackle this project was first to gather information and insights on pixel classification problems, so we could get an idea of what we wanted to achieve and designed a project outline accordingly. From there, we worked together in the code and writing, benefiting from the discussions that arose during STA 521 lectures and lab sessions.
+
+\newpage
 
 # Bibliography

@@ -1,6 +1,13 @@
-# https://rspatial.org/terra/rs/2-exploration.html#relation-between-bands
+## Script: 01_eda.R
+## Inputs:
+# data/imagem1.txt
+# data/imagem2.txt
+# data/imagem3.txt
+## Outputs:
+# cache/01_dt_full.rds
+# cache/01_dt_eda.rds
+
 library(tidyverse)
-# library(terra)
 library(ggcorrplot)
 library(patchwork)
 
@@ -44,7 +51,7 @@ full_dt %>%
   count(img, label) %>%
   pivot_wider(names_from = img, values_from = n) %>%
   janitor::adorn_totals(where = "col", name = "Total") %>%
-  mutate(across(img1:Total, ~paste0(round(.x/sum(.x)*100, 2), "%")))
+  mutate(across(img1:Total, ~ paste0(round(.x / sum(.x) * 100, 2), "%")))
 
 colors <- c(
   "Cloud" = "white",
@@ -57,7 +64,7 @@ labs_img1 <- full_dt %>%
   mutate(
     across(
       label,
-      ~case_when(
+      ~ case_when(
         .x == 1 ~ "Cloud",
         .x == -1 ~ "No cloud",
         .x == 0 ~ "Unlabelled"
@@ -84,7 +91,7 @@ labs_img2 <- full_dt %>%
   mutate(
     across(
       label,
-      ~case_when(
+      ~ case_when(
         .x == 1 ~ "Cloud",
         .x == -1 ~ "No cloud",
         .x == 0 ~ "Unlabelled"
@@ -111,7 +118,7 @@ labs_img3 <- full_dt %>%
   mutate(
     across(
       label,
-      ~case_when(
+      ~ case_when(
         .x == 1 ~ "Cloud",
         .x == -1 ~ "No cloud",
         .x == 0 ~ "Unlabelled"
@@ -161,13 +168,6 @@ ggsave(
 # 2 EDA -------------------------------------------------------------------
 dt_eda <- full_dt %>%
   filter(label != 0)
-# Authors claim radiance measures are not consistent
-dt_eda %>%
-  select(rad_df:img) %>%
-  pivot_longer(cols = -img) %>%
-  ggplot(aes(x = value, fill = img)) +
-  geom_density(alpha = 0.5) +
-  facet_wrap(~name)
 
 my_scale <- function(x) {
   (x - mean(x)) / sd(x)
@@ -182,7 +182,6 @@ dt_eda %>%
   facet_wrap(~name, scales = "free")
 
 # Correlogram
-
 corplot <- dt_eda %>%
   select(label:rad_an) %>%
   cor() %>%
@@ -196,8 +195,8 @@ corplot <- dt_eda %>%
 ggsave(
   "graphs/01_corrplot.png",
   corplot,
-  width = 8*1.5,
-  height = 6*1.5,
+  width = 8 * 1.5,
+  height = 6 * 1.5,
   units = "cm"
 )
 
@@ -206,18 +205,16 @@ medians <- dt_eda %>%
   mutate(`log(sd)` = log(sd)) %>%
   select(label, ndai, corr, `log(sd)`, rad_an) %>%
   mutate(across(-label, my_scale)) %>%
-  mutate(across(label, ~if_else(.x == 1, "Cloud", "No cloud"))) %>%
+  mutate(across(label, ~ if_else(.x == 1, "Cloud", "No cloud"))) %>%
   group_by(label) %>%
   summarise(across(ndai:rad_an, median), .groups = "drop") %>%
   pivot_longer(cols = -label)
-
-# color_vec <- c("Cloud" = "gray60", "No cloud" = "gray8")
 
 label_densities <- dt_eda %>%
   mutate(`log(sd)` = log(sd)) %>%
   select(label, ndai, corr, `log(sd)`, rad_an) %>%
   mutate(across(-label, my_scale)) %>%
-  mutate(across(label, ~if_else(.x == 1, "Cloud", "No cloud"))) %>%
+  mutate(across(label, ~ if_else(.x == 1, "Cloud", "No cloud"))) %>%
   pivot_longer(cols = -label) %>%
   ggplot(aes(x = value, fill = factor(label))) +
   geom_density(alpha = 0.7) +
@@ -226,27 +223,21 @@ label_densities <- dt_eda %>%
     aes(xintercept = value),
     color = "black",
     linetype = 2
-    ) +
+  ) +
   facet_wrap(~name, scales = "free") +
   labs(x = "", y = "", fill = "") +
   guides(color = "none") +
   scale_fill_viridis_d() +
   scale_color_viridis_d() +
-  # scale_fill_manual(values = color_vec) +
-  # scale_color_manual(values = color_vec) +
   theme_bw()
 
 ggsave(
   "graphs/01_lab_densities.png",
   label_densities,
-  width = 12*1.5,
-  height = 6*1.5,
+  width = 12 * 1.5,
+  height = 6 * 1.5,
   units = "cm"
 )
-
-dt_eda %>%
-  ggplot(aes(x = rad_af, y = rad_an)) +
-  geom_point()
 
 corr_radan <- dt_eda %>%
   ggplot(aes(x = corr, y = rad_an)) +
@@ -257,8 +248,8 @@ corr_radan <- dt_eda %>%
 ggsave(
   "graphs/01_corr_radan.png",
   corr_radan,
-  width = 12*1.5,
-  height = 6*1.5,
+  width = 12 * 1.5,
+  height = 6 * 1.5,
   units = "cm"
 )
 
@@ -271,21 +262,16 @@ ndai_sd <- dt_eda %>%
 ggsave(
   "graphs/01_ndai_sd.png",
   ndai_sd,
-  width = 12*1.5,
-  height = 6*1.5,
+  width = 12 * 1.5,
+  height = 6 * 1.5,
   units = "cm"
 )
-
-dt_eda %>%
-  ggplot(aes(x = corr)) +
-  geom_density()
-
 
 pca <- full_dt %>%
   select(-x, -y, -label, -img) %>%
   prcomp(scale. = TRUE)
 
-cumsum(pca$sdev^2)/sum(pca$sdev^2)
+cumsum(pca$sdev^2) / sum(pca$sdev^2)
 
 pcimg <- as_tibble(pca$x) %>%
   mutate(x = full_dt$x, y = full_dt$y, img = full_dt$img)
@@ -309,7 +295,6 @@ pcimg1 <- pcimg %>%
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
@@ -328,7 +313,6 @@ pcimg2 <- pcimg %>%
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
@@ -347,7 +331,6 @@ pcimg3 <- pcimg %>%
     axis.text.x = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks = element_blank(),
-    # legend.title = element_blank(),
     legend.position = "top",
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
@@ -377,5 +360,5 @@ ggsave(
   units = "cm"
 )
 
-write_rds(full_dt, "data/01_dt_full.rds")
-write_rds(dt_eda, "data/01_dt_eda.rds")
+write_rds(full_dt, "cache/01_dt_full.rds")
+write_rds(dt_eda, "cache/01_dt_eda.rds")

@@ -1,29 +1,41 @@
+## Script: 03b_modeling.R
+## Inputs:
+  # cache/01_dt_full.rds
+  # R/02c_CVmaster.R
+  # cache/02_dt_train_block.rds
+  # cache/02_dt_test_block.rds
+  # cache/03_xg_best.rds
+  # cache/03_fit_xg.rds
+## Outputs:
+
 library(tidymodels)
 library(tidyverse)
 library(xgboost)
 
-source("R/02_CVmaster.R")
+source("R/02c_CVmaster.R")
 
-dt_train <- read_rds("data/02_dt_train_block.rds") %>%
+set.seed(42)
+
+dt_train <- read_rds("cache/02_dt_train_block.rds") %>%
   select(-block) %>%
   mutate(
-    across(x, ~if_else(img == "img3", .x + 299, .x))
+    across(x, ~ if_else(img == "img3", .x + 299, .x))
   ) %>%
-  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, ~ if_else(.x == -1, 0, 1))) %>%
   mutate(across(label, factor))
 
-dt_test <- read_rds("data/02_dt_test_block.rds") %>%
+dt_test <- read_rds("cache/02_dt_test_block.rds") %>%
   select(-block) %>%
-  mutate(across(label, ~if_else(.x == -1, 0, 1))) %>%
+  mutate(across(label, ~ if_else(.x == -1, 0, 1))) %>%
   mutate(across(label, factor))
 
-dt_full <- read_rds("data/01_dt_full.rds")
+dt_full <- read_rds("cache/01_dt_full.rds")
 
-rec_xg <- recipe(label ~., data = dt_train) %>%
+rec_xg <- recipe(label ~ ., data = dt_train) %>%
   step_rm(x, y, img) %>%
   step_scale(all_predictors())
 
-xg_tune_best <- read_rds("data/03_xg_best.rds")
+xg_tune_best <- read_rds("cache/03_xg_best.rds")
 
 mod_xg <- boost_tree(
   mode = "classification",
@@ -41,12 +53,7 @@ wf_xg <- workflow() %>%
   add_recipe(rec_xg) %>%
   add_model(mod_xg)
 
-# Already fit
-fit_xg <- read_rds("data/04_fit_xg.rds")
-# fit_xg <- wf_xg %>%
-#   fit(dt_train)
-#
-# write_rds(fit_xg, "data/04_fit_xg.rds")
+fit_xg <- read_rds("cache/03_fit_xg.rds")
 
 dt_test_bind <- dt_test %>%
   bind_cols(
@@ -127,116 +134,6 @@ ggsave(
   units = "cm"
 )
 
-plot_tree <-
-  xgb.plot.tree(feature_names = fit_obj$feature_names, model = fit_obj)
-
-set.seed(42)
-mod_xg125 <- boost_tree(
-  mode = "classification",
-  engine = "xgboost",
-  trees = 125,
-  tree_depth = xg_tune_best$tree_depth,
-  min_n = xg_tune_best$min_n,
-  loss_reduction = xg_tune_best$loss_reduction,
-  sample_size = xg_tune_best$sample_size,
-  mtry = xg_tune_best$mtry,
-  learn_rate = xg_tune_best$learn_rate
-)
-
-cv125 <- CVmaster(
-  dt_train,
-  mod_xg125,
-  rec_xg,
-  .method = "block",
-  .columns = 3,
-  .rows = 3,
-  .metrics = metric_set(mn_log_loss)
-)
-
-write_rds(cv125, "data/04_cv125.rds")
-
-mod_xg250 <- boost_tree(
-  mode = "classification",
-  engine = "xgboost",
-  trees = 250,
-  tree_depth = xg_tune_best$tree_depth,
-  min_n = xg_tune_best$min_n,
-  loss_reduction = xg_tune_best$loss_reduction,
-  sample_size = xg_tune_best$sample_size,
-  mtry = xg_tune_best$mtry,
-  learn_rate = xg_tune_best$learn_rate
-)
-
-cv250 <- CVmaster(
-  dt_train,
-  mod_xg250,
-  rec_xg,
-  .method = "block",
-  .columns = 3,
-  .rows = 3,
-  .metrics = metric_set(mn_log_loss)
-)
-
-write_rds(cv250, "data/04_cv250.rds")
-
-mod_xg500 <- boost_tree(
-  mode = "classification",
-  engine = "xgboost",
-  trees = 500,
-  tree_depth = xg_tune_best$tree_depth,
-  min_n = xg_tune_best$min_n,
-  loss_reduction = xg_tune_best$loss_reduction,
-  sample_size = xg_tune_best$sample_size,
-  mtry = xg_tune_best$mtry,
-  learn_rate = xg_tune_best$learn_rate
-)
-
-cv500 <- CVmaster(
-  dt_train,
-  mod_xg500,
-  rec_xg,
-  .method = "block",
-  .columns = 3,
-  .rows = 3,
-  .metrics = metric_set(mn_log_loss)
-)
-
-mod_xg1000 <- boost_tree(
-  mode = "classification",
-  engine = "xgboost",
-  trees = 1000,
-  tree_depth = xg_tune_best$tree_depth,
-  min_n = xg_tune_best$min_n,
-  loss_reduction = xg_tune_best$loss_reduction,
-  sample_size = xg_tune_best$sample_size,
-  mtry = xg_tune_best$mtry,
-  learn_rate = xg_tune_best$learn_rate
-)
-
-cv1000 <- CVmaster(
-  dt_train,
-  mod_xg1000,
-  rec_xg,
-  .method = "block",
-  .columns = 3,
-  .rows = 3,
-  .metrics = metric_set(mn_log_loss)
-)
-
-write_rds(cv1000, "data/04_cv1000.rds")
-
-bind_rows(
-  cv125 %>% mutate(nrounds = 125),
-  cv250 %>% mutate(nrounds = 250),
-  cv500 %>% mutate(nrounds = 500),
-) %>%
-  ggplot(aes(x = nrounds, y = .estimate)) +
-  geom_point()
-
-
-cv500 %>%
-  summarise(across(.estimate, mean))
-
 dt_aug <- fit_xg %>%
   augment(dt_train)
 
@@ -248,32 +145,26 @@ pca_tib <- pca$x %>%
   as_tibble() %>%
   mutate(pred = dt_aug$.pred_class)
 
-  pca_tib %>%
+pca_tib %>%
   ggplot(aes(x = PC1, y = PC2, color = pred)) +
   geom_point()
 
-make.grid = function(x, n = 200) {
-  grange = apply(x, 2, range)
-  x1 = seq(from = grange[1,1], to = grange[2,1], length = n)
-  x2 = seq(from = grange[1,2], to = grange[2,2], length = n)
+make.grid <- function(x, n = 200) {
+  grange <- apply(x, 2, range)
+  x1 <- seq(from = grange[1, 1], to = grange[2, 1], length = n)
+  x2 <- seq(from = grange[1, 2], to = grange[2, 2], length = n)
   expand.grid(X1 = x1, X2 = x2)
 }
 
 grid <- make.grid(pca$x)
 proj_features <- cbind(
   grid,
-  rnorm(n = NROW(grid), mean = mean(pca$x[,3]), sd = sd(pca$x[,3])),
-  rnorm(n = NROW(grid), mean = mean(pca$x[,4]), sd = sd(pca$x[,4])),
-  rnorm(n = NROW(grid), mean = mean(pca$x[,5]), sd = sd(pca$x[,5])),
-  rnorm(n = NROW(grid), mean = mean(pca$x[,6]), sd = sd(pca$x[,6])),
-  rnorm(n = NROW(grid), mean = mean(pca$x[,7]), sd = sd(pca$x[,7])),
-  rnorm(n = NROW(grid), mean = mean(pca$x[,8]), sd = sd(pca$x[,8]))
-  # rep(0, times = NROW(grid)),
-  # rep(0, times = NROW(grid)),
-  # rep(0, times = NROW(grid)),
-  # rep(0, times = NROW(grid)),
-  # rep(0, times = NROW(grid)),
-  # rep(0, times = NROW(grid))
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 3]), sd = sd(pca$x[, 3])),
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 4]), sd = sd(pca$x[, 4])),
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 5]), sd = sd(pca$x[, 5])),
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 6]), sd = sd(pca$x[, 6])),
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 7]), sd = sd(pca$x[, 7])),
+  rnorm(n = NROW(grid), mean = mean(pca$x[, 8]), sd = sd(pca$x[, 8]))
 )
 
 proj_matrix <- as.matrix(proj_features) %*% t(pca$rotation)
@@ -291,7 +182,7 @@ decision_boundary <- grid %>%
     data = pca_tib,
     aes(x = PC1, y = PC2, color = pred),
     alpha = 0.3
-    ) +
+  ) +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_color_viridis_d() +
@@ -321,14 +212,14 @@ test_roc <- dt_test %>%
 xg_roc <- test_roc %>%
   autoplot() +
   geom_point(
-    data = test_roc %>% filter(abs(.threshold - 0.5)<0.001) %>% dplyr::slice(1),
+    data = test_roc %>% filter(abs(.threshold - 0.5) < 0.001) %>% dplyr::slice(1),
     aes(x = 1 - specificity, y = sensitivity),
     color = "red",
     size = 1
   ) +
   labs(
     subtitle = paste("AUC =", round(test_auc$.estimate, 3))
-    )
+  )
 
 ggsave(
   "graphs/04_xg_roc.png",
@@ -472,7 +363,7 @@ dt_test_misclas %>%
   geom_density(alpha = 0.5)
 
 dt_test_misclas %>%
-  mutate(across(sd, ~my_scale(log(.x)))) %>%
+  mutate(across(sd, ~ my_scale(log(.x)))) %>%
   ggplot(aes(x = sd, fill = false_negative)) +
   geom_density(alpha = 0.5)
 
@@ -480,5 +371,3 @@ dt_test_misclas %>%
   mutate(across(rad_af, my_scale)) %>%
   ggplot(aes(x = rad_af, fill = false_negative)) +
   geom_density(alpha = 0.5)
-
-
