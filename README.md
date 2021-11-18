@@ -15,4 +15,4 @@ Every script that relies on random computations explicitly sets at least one ran
 
 Finally, in order to avoid conflicts with R package versions, we use the renv package to create a reproducible snapshot of the versions used. This is specially important because we use the developer versions of the packages parsnip and discrim that are located in Github at the time of writing.
 
-Because of file size limit when submitting to Gradescope, the folders data/ and cache/ were emptied before compressing the repository.
+Because of file size limit and other Gradescope details, the submission was not organized into these folders. The files in R/ and graphs/ were included jointly with the Rmd of the writeup, the bibliography, and the README file. In Gradescope the renv/ folder for environment recreation is not available. To access the full repo refer to https://github.com/josePliego/sta521-proj2
