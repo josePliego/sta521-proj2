@@ -63,7 +63,7 @@ Cloud & 33.77\% & 17.78\% & 18.48\% & 23.34\%\\
 \label{tab:labs}
 \end{table}
 
-To get a sense of how labels look like in space, we can plot them in the $(x,y)$ plane. In figure \@ref(fig:labs) we can see that cloudy regions and surface regions are separated by unlabeled regions, where the expert could not say for sure whether the pixels correspond to clouds or ice/snow.
+We can plot labels in the $(x,y)$ plane to visualize them. In figure \@ref(fig:labs) we can see that cloudy regions and surface regions are separated by unlabeled regions, where the expert could not determine if pixels correspond to clouds or ice/snow.
 
 \begin{figure}
     \centering
@@ -86,7 +86,7 @@ To get a sense of how labels look like in space, we can plot them in the $(x,y)$
     \label{fig:labs}
 \end{figure}
 
-Figure \@ref(fig:labs) is very interesting because it shows the strong spatial dependence present in the images. Cloudy pixels are generally surrounded by more cloudy pixels, and the same pattern repeats for surface (non-cloudy) pixels. This phenomenon presents a significant challenge for pixel classification because we cannot treat the different pixels as independent and identically distributed. We must account for the spatial dependence in our classification models so they can generalize well to future unobserved images.
+Figure \@ref(fig:labs) shows strong spatial dependence present in the images. Cloudy pixels are generally surrounded by cloudy pixels, and the same pattern repeats for surface/non-cloudy pixels. This presents a challenge for pixel classification because we cannot treat the different pixels as independent and identically distributed. We must account for the spatial dependence in our classification models so they can generalize well to future unobserved images.
 
 \newpage
 
