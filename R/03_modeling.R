@@ -5,6 +5,7 @@ library(tidyverse)
 library(discrim)
 library(MASS, pos = 999)
 library(klaR)
+library(xtable)
 
 source("R/02_CVmaster.R")
 
@@ -32,7 +33,7 @@ rec_logreg <- recipe(label ~., data = dt_train_logreg) %>%
 mod_logreg <- logistic_reg(
   mode = "classification",
   engine = "glm"
-  )
+)
 
 cvblock_logreg <- CVmaster(
   dt_train_logreg,
@@ -47,7 +48,7 @@ summaryblock_logreg <- cvblock_logreg %>%
   mutate(
     model = "Logistic Regression",
     method = "Block"
-    )
+  )
 
 write_rds(summaryblock_logreg, "data/03_logreg_cvblock.rds")
 
@@ -423,15 +424,36 @@ summarykmeans_nb = cvkmeans_nb %>%
 
 write_rds(summarykmeans_nb, "data/03_naiveb_cvkmeans.rds")
 
-summarykmeans_xgboost = readRDS("data/03_xg_cvkmeans.rds")
+summarykmeans_xgboost = as.tibble(readRDS("data/03_xg_cvkmeans.rds"))
 
 summarykmeans_xgboost = summarykmeans_xgboost %>%
-  mutate(model = "XGBoost", method = "K-means")
+  mutate(model = "XGBoost", method = "K-means") %>%
+  rbind(NA)
 
-summaryblock_xgboost = readRDS("data/03_xg_cvblock.rds")
+summaryblock_xgboost = as.tibble(readRDS("data/03_xg_cvblock.rds"))
 
 summaryblock_xgboost = summaryblock_xgboost %>%
   mutate(model = "XGBoost", method = "Block")
 
+summary_kmeans = cbind(summarykmeans_logreg[,3], summarykmeans_lda[,3], summarykmeans_qda[,3],
+                       summarykmeans_nb[,3], summarykmeans_svm[,3], summarykmeans_xgboost[,3])
+colnames(summary_kmeans) = c("Logistic Regression", "LDA", "QDA", "Naive Bayes", "SVM", "XGBoost")
+
+summary_kmeans_averages = rbind(summary_kmeans,
+summary_kmeans %>%
+  apply(2, mean, na.rm = TRUE))
+
+
+summary_block = cbind(summaryblock_logreg[,3], summaryblock_lda[,3], summaryblock_qda[,3],
+                       summaryblock_nb[,3], summaryblock_svm[,3], summaryblock_xgboost[,3])
+colnames(summary_block) = c("Logistic Regression", "LDA", "QDA", "Naive Bayes", "SVM", "XGBoost")
+
+summary_block_averages = rbind(summary_block,
+                                summary_block %>%
+                                  apply(2, mean, na.rm = TRUE))
+
+summary_block_averages %>% xtable::xtable()
+
+summary_kmeans_averages %>% xtable::xtable()
 
 
