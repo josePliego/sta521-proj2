@@ -1,4 +1,9 @@
-# Notes on Reproducibility
+# STA 521 - Project 2
+Johnny Antoun & Jose Pliego
+
+For the full report see the file [sta521-proj2.pdf](https://github.com/josePliego/sta521-proj2/blob/main/sta521-proj2.pdf).
+
+## Notes on Reproducibility
 The project is structured as follows.
 
 + cache/ contains intermediate rds files created throughout the scripts
